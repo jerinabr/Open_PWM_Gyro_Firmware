@@ -17,5 +17,6 @@ void config() {
 */
 void loop() {
   CDC_Transmit_FS("hello\n", 6);
+  HAL_GPIO_TogglePin(LED_RED_PORT, LED_RED_PIN);
   HAL_Delay(1000);
 }

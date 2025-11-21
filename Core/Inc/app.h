@@ -19,6 +19,9 @@
 // User libraries
 #include "Receiver.h"
 
+#define LED_RED_PORT  GPIOB
+#define LED_RED_PIN   GPIO_PIN_5
+
 #ifdef __cplusplus
 extern "C" {
 #endif
