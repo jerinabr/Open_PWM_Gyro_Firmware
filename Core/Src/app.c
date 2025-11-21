@@ -6,7 +6,8 @@
   Any application configuration that happens before the main loop should be placed here
 */
 void config() {
-  HAL_Delay(1000);
+  // Initialize peripherals
+  receiver_init();
 }
 
 /*!
@@ -15,5 +16,6 @@ void config() {
   Any application code in this function will loop infinitely
 */
 void loop() {
+  CDC_Transmit_FS("hello\n", 6);
   HAL_Delay(1000);
 }
