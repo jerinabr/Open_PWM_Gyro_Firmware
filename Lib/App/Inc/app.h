@@ -12,8 +12,6 @@
 #ifndef APP_H
 #define APP_H
 
-#include "stm32g4xx_hal.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
