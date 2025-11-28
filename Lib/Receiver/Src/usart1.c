@@ -35,8 +35,10 @@ static void configure_pins(void) {
   SET_BIT(RCC->AHB2ENR, RCC_AHB2ENR_GPIOBEN);
 
   // Configure PA9 and PA10 for use by USART1
-  SET_BIT(GPIOA->AFR[1],  GPIO_PA9_AF7_USART1 | // Set alternate function for PA9 and PA10 as USART1 pins
-                          GPIO_PA10_AF7_USART1);
+  SET_BIT(    // Set alternate function for PA9 and PA10 as USART1 pins
+    GPIOA->AFR[1],
+    GPIO_PA9_AF7_USART1 | GPIO_PA10_AF7_USART1
+  );
   MODIFY_REG( // Set PA9 and PA10 into alternate function mode
     GPIOA->MODER,
     GPIO_MODER_MODE9 | GPIO_MODER_MODE10,
