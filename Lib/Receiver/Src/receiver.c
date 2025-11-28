@@ -31,7 +31,7 @@ static inline void parse_ibus_data(uint8_t data) {
     case WAIT_FOR_LENGTH: {
       if (data > 0x03 && data <= 0x20) {
         buf_i = 0;
-        payload_len = data + 1; // n bytes of data + 1 cmd byte
+        payload_len = data - 3;
         checksum_calc = 0xFFFF - data;
         state = WAIT_FOR_DATA;
       }
@@ -48,7 +48,7 @@ static inline void parse_ibus_data(uint8_t data) {
     }
 
     case WAIT_FOR_CHECKSUM_1: {
-      checksum_rx |= (uint16_t) data;
+      checksum_rx = (uint16_t) data;
       state = WAIT_FOR_CHECKSUM_2;
       break;
     }
@@ -64,6 +64,7 @@ static inline void parse_ibus_data(uint8_t data) {
           rx.rx_data_valid = 1;
         }
       }
+      state = WAIT_FOR_LENGTH;
       break;
     }
   }
