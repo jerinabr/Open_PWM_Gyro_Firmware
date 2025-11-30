@@ -144,7 +144,7 @@ void usart1_reconfig(const usart_config *config_data) {
 }
 
 /*!
-  @brief  Checks if the RX FIFO is empty
+  @brief  Check if the RX FIFO is empty
   @return 1 if RX FIFO is empty, 0 otherwise
 */
 uint8_t usart1_rx_fifo_empty() {
@@ -152,7 +152,7 @@ uint8_t usart1_rx_fifo_empty() {
 }
 
 /*!
-  @brief  Reads a byte from the RX FIFO
+  @brief  Read a byte from the RX FIFO
   @return Byte from RX FIFO
 */
 uint8_t usart1_read_rx_fifo() {
