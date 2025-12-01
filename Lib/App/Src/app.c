@@ -15,7 +15,7 @@
 */
 void config() {
   // Initialize peripherals
-  receiver_init();
+  receiver_init(IBUS);
 }
 
 /*!
@@ -28,16 +28,16 @@ void loop() {
   process_receiver();
 
   // FOR DEBUG
-  if (rx.rx_data_valid) {
-    rx.rx_data_valid = 0;
+  if (rx.channel_data_valid) {
+    rx.channel_data_valid = 0;
     uint8_t tx_buf[64];
     uint8_t tx_buf_len = snprintf(
       (char *) tx_buf, 64,
       "Ch1: %hu\tCh2: %hu\tCh3: %hu\tCh4: %hu\r\n",
-      rx.rx_data[0],
-      rx.rx_data[1],
-      rx.rx_data[2],
-      rx.rx_data[3]
+      rx.channel_data[0],
+      rx.channel_data[1],
+      rx.channel_data[2],
+      rx.channel_data[3]
     );
     CDC_Transmit_FS(tx_buf, tx_buf_len);
   }

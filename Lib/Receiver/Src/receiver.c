@@ -1,85 +1,55 @@
 #include "receiver.h"
+#include "ibus.h"
 #include "usart1.h"
 #include <stdint.h>
 
 // Initialize the reciever instance
-receiver_t rx = {
-  .rx_data = {0},
-  .rx_data_valid = 0
+receiver rx = {
+  .channel_data = {0},
+  .channel_data_valid = 0
 };
 
-uint8_t rx_buffer[64];
+// Function pointer to the selected protocol decoder function
+static void (*decode_rx_data)(uint8_t data);
 
 // ----------------------------------------------------------------------
 // PRIVATE FUNCTIONS
 // ----------------------------------------------------------------------
 
-static inline void parse_ibus_data(uint8_t data) {
-  static enum {
-    WAIT_FOR_LENGTH,
-    WAIT_FOR_CMD,
-    WAIT_FOR_DATA,
-    WAIT_FOR_CHECKSUM_1,
-    WAIT_FOR_CHECKSUM_2
-  } state = WAIT_FOR_LENGTH;
+/*!
+  @brief Set the channels and valid flag to 0
 
-  static uint8_t payload_len = 0;
-  static uint8_t cmd = 0;
-  static uint16_t checksum_calc = 0;
-  static uint16_t checksum_rx = 0;
-  static uint8_t buf_i = 0;
+  This is just here till I implement all the receiver protocols
+*/
+static void decode_rx_data_placeholder(uint8_t data) {
+  for (int i = 0; i < MAX_CHANNELS; i++) {
+    rx.channel_data[i] = 0;
+  }
+  rx.channel_data_valid = 0;
+}
 
-  switch (state) {
-    case WAIT_FOR_LENGTH: {
-      if (data > 0x03 && data <= 0x20) {
-        buf_i = 0;
-        payload_len = data - 4;
-        checksum_calc = 0xFFFF - data;
-        state = WAIT_FOR_CMD;
-      }
+/*!
+  @brief Configure the USART and assign the decoder function pointer
+*/
+static void select_rx_config(usart_config* usart_config, rx_protocols rx_protocol) {
+  switch (rx_protocol) {
+    case IBUS: {
+      usart_config->baud_rate = IBUS_BAUD_RATE;
+      usart_config->idle_level = IBUS_IDLE_LEVEL;
+      decode_rx_data = parse_ibus_data;
+      reset_ibus();
       break;
     }
-
-    case WAIT_FOR_CMD: {
-      cmd = data;
-      checksum_calc -= data;
-      state = WAIT_FOR_DATA;
+    case CRSF: {
+      // TODO: Implement this eventually
+      decode_rx_data = decode_rx_data_placeholder;
       break;
     }
-
-    case WAIT_FOR_DATA: {
-      rx_buffer[buf_i++] = data;
-      checksum_calc -= data;
-      if (buf_i == payload_len) {
-        state = WAIT_FOR_CHECKSUM_1;
-      }
-      break;
-    }
-
-    case WAIT_FOR_CHECKSUM_1: {
-      checksum_rx = (uint16_t) data;
-      state = WAIT_FOR_CHECKSUM_2;
-      break;
-    }
-
-    case WAIT_FOR_CHECKSUM_2: {
-      checksum_rx |= (uint16_t) data << 8;
-      if (checksum_calc == checksum_rx) {
-        if (cmd == 0x40) {
-          for (int i = 0; i < 16; i++) {
-            rx.rx_data[i] = (rx_buffer[2 * i + 1] << 8) | rx_buffer[2 * i];
-          }
-          rx.rx_data_valid = 1;
-        }
-      }
-      state = WAIT_FOR_LENGTH;
+    default: {
+      decode_rx_data = decode_rx_data_placeholder;
       break;
     }
   }
-}
-
-static inline void process_received_byte(uint8_t data) {
-  parse_ibus_data(data);
 }
 
 // ----------------------------------------------------------------------
@@ -87,10 +57,27 @@ static inline void process_received_byte(uint8_t data) {
 // ----------------------------------------------------------------------
 
 /*!
-  @brief Initialize the reciever
+  @brief Initialize the reciever with a specific protocol
 */
-void receiver_init() {
-  usart1_init();
+void receiver_init(rx_protocols rx_protocol) {
+  usart_config usart_config = {
+    .baud_rate = usart1_default_config.baud_rate,
+    .idle_level = usart1_default_config.idle_level
+  };
+  select_rx_config(&usart_config, rx_protocol);
+  usart1_init(&usart_config);
+}
+
+/*!
+  @brief Reconfigure the receiver with a specific protocol
+*/
+void receiver_reconfig(rx_protocols rx_protocol) {
+  usart_config usart_config = {
+    .baud_rate = usart1_default_config.baud_rate,
+    .idle_level = usart1_default_config.idle_level
+  };
+  select_rx_config(&usart_config, rx_protocol);
+  usart1_reconfig(&usart_config);
 }
 
 /*!
@@ -99,6 +86,6 @@ void receiver_init() {
 void process_receiver() {
   if (!usart1_rx_fifo_empty()) {
     uint8_t data = usart1_read_rx_fifo();
-    process_received_byte(data);
+    decode_rx_data(data);
   }
 }

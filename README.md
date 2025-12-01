@@ -26,8 +26,7 @@ The data input to the gyro is via IBUS, SBUS, or CRSF through the top (SER) head
 - [ ] Create receiver serial library
   - [x] Create UART driver
   - [ ] Create serial decoder for different RX protocols
-    - [ ] Create IBUS decoder
-    - [ ] Create SBUS decoder
+    - [x] Create IBUS decoder
     - [ ] Create CRSF decoder
 - [ ] Create USB library for device configuration
   - [ ] Implement DFU
