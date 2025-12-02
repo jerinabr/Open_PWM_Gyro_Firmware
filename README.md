@@ -1,3 +1,5 @@
+![Static Badge](https://img.shields.io/badge/STATUS-WIP-b388eb?style=for-the-badge&logoSize=auto)
+
 # Overview
 Firmware for the Open_PWM_Gyro
 
@@ -13,7 +15,14 @@ This gyro will have a few modes including but not limited to:
 
 Each mode will be configrable via USB with an app that I need to make lol
 
-The data input to the gyro is via IBUS, SBUS, or CRSF through the top (SER) header
+The data input to the gyro is via IBUS or CRSF through the top (SER) header
+
+# Design
+The hardware interfaces in this firmware are written with as little HAL and LL usage as possible
+
+This is for two main reasons:
+  1. This is my first project with a "bare" microcontroller instead of the typical dev board and I've never used an STM32 before so I want to get familiar with the underlying hardware
+  2. Unlike a company, I have no deadlines so I don't need to speed up my workflow by using HAL
 
 # Task List
 ## Hardware Interfaces
