@@ -82,6 +82,8 @@ void receiver_reconfig(rx_protocols rx_protocol) {
 
 /*!
   @brief Read the RX FIFO and parse the data
+
+  This function should be called in the main program loop
 */
 void process_receiver() {
   if (!usart1_rx_fifo_empty()) {

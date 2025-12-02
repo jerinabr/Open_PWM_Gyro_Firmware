@@ -2,12 +2,28 @@
   @file		receiver.h
   @brief	Receive and decode serial data from the connected receiver over UART
 
-  This library initializes the UART interface to receive data from the SER header
-
+  --OVERVIEW--
   The data can be decoded in a number of ways depending on the protocol specified
   These protocols include:
     - IBUS
     - CRSF
+
+  When the receiver is initialized with a particular protocol, the decoder function
+  pointer is assigned and the USART is initialized with a configuration given by the
+  protocol.
+
+  The data from the USART RX FIFO is sent to the decoder function and when the data
+  is successfully parsed, the decoder function updates the channel data array and sets
+  the valid flag
+
+  The receiver can also be reconfigured during operation to select a different protocol
+
+  --USAGE--
+  The receiver_init function should be called with one of the given protocols enums during
+  the program setup
+
+  The process_receiver function should be called in the main program loop on every iteration
+  of the loop
 */
 #ifndef RECEIVER_H
 #define RECEIVER_H
