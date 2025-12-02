@@ -35,6 +35,10 @@ extern "C" {
 
 #define MAX_CHANNELS 16
 
+// ----------------------------------------------------------------------
+// TYPES
+// ----------------------------------------------------------------------
+
 // Receiver protocols
 typedef enum {
   IBUS,
@@ -47,10 +51,13 @@ typedef struct {
   uint8_t channel_data_valid;
 } receiver;
 
-// Global instance of receiver
+// Global instance of rx
 extern receiver rx;
 
-// Functions
+// ----------------------------------------------------------------------
+// FUNCTIONS
+// ----------------------------------------------------------------------
+
 void receiver_init(rx_protocols rx_protocol);
 void receiver_reconfig(rx_protocols rx_protocol);
 

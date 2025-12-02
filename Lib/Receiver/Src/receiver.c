@@ -3,7 +3,7 @@
 #include "usart1.h"
 #include <stdint.h>
 
-// Initialize the reciever instance
+// Initialize the receiver instance
 receiver rx = {
   .channel_data = {0},
   .channel_data_valid = 0
