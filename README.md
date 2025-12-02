@@ -17,21 +17,22 @@ The data input to the gyro is via IBUS, SBUS, or CRSF through the top (SER) head
 
 # Task List
 ## Hardware Interfaces
-- [ ] Create SPI library for ICM-42605
-  - [ ] Write SPI initialization
-  - [ ] Write ICM-42605 driver
+- [ ] Create ICM-42605 library
+  - [ ] Create SPI driver
+  - [ ] Create ICM-42605 driver
 - [ ] Create PWM library for channels
-  - [ ] Write timer initialization
-  - [ ] Write PWM driver
-- [ ] Create UART library for RX serial input
-  - [ ] Write UART initialization
-  - [ ] Write UART decoder for different RX protocols
-    - [ ] Write IBUS decoder
-    - [ ] Write SBUS decoder
-    - [ ] Write CRSF decoder
+  - [ ] Create timer driver
+  - [ ] Create PWM driver
+- [x] Create receiver serial library
+  - [x] Create UART driver
+  - [x] Create serial decoder for different RX protocols
+    - [x] Create IBUS decoder
+    - [ ] Create CRSF decoder
 - [ ] Create USB library for device configuration
   - [ ] Implement DFU
   - [ ] Create configuration registers
+- [ ] Create flash library to store configuration
+  - [ ] Create flash driver
 ## Data Processing
 - [ ] Add sensor fusion library/algorithm
 - [ ] Implement gyro modes
