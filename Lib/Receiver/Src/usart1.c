@@ -51,32 +51,17 @@ static inline uint16_t calculate_brr(uint32_t baud) {
   @brief Configure GPIO pins PA9 and PA10 to be used by USART1
 */
 static void configure_pins(void) {
-  // Enable clock for GPIO Port B
-  SET_BIT(RCC->AHB2ENR, RCC_AHB2ENR_GPIOBEN);
-
-  /*
-    Configure PA9 and PA10 for use by USART1
-  */
-  SET_BIT(    // Set alternate function for PA9 and PA10 as USART1 pins
+  // Set alternate function for PA9 and PA10 as USART1 pins
+  SET_BIT(
     GPIOA->AFR[1],
     GPIO_PA9_AF7_USART1 | GPIO_PA10_AF7_USART1
   );
-  MODIFY_REG( // Set PA9 and PA10 into alternate function mode
+  // Set PA9 and PA10 into alternate function mode
+  MODIFY_REG(
     GPIOA->MODER,
     GPIO_MODER_MODE9 | GPIO_MODER_MODE10,
     GPIO_PA9_AF_MODE | GPIO_PA10_AF_MODE
   );
-}
-
-/*!
-  @brief Configure USART1 to receive in FIFO mode
-*/
-static void configure_usart1(const usart_config *config_data) {
-  // Enable clock for USART1
-  SET_BIT(RCC->APB2ENR, RCC_APB2ENR_USART1EN);
-
-  // Configure USART1 with desired configuration
-  usart1_reconfig(config_data);
 }
 // ----------------------------------------------------------------------
 // PUBLIC FUNCTIONS
@@ -87,7 +72,7 @@ static void configure_usart1(const usart_config *config_data) {
 */
 void usart1_init(const usart_config *config_data) {
   configure_pins();
-  configure_usart1(config_data);
+  usart1_reconfig(config_data);
 }
 
 /*!
