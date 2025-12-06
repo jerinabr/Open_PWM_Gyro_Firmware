@@ -46,6 +46,7 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user sources here
     "Lib/App/Src/app.c"
+    "Lib/PWM/Src/timers.c"
     "Lib/Receiver/Src/ibus.c"
     "Lib/Receiver/Src/receiver.c"
     "Lib/Receiver/Src/usart1.c"
@@ -55,6 +56,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined include paths
     "Lib/App/Inc"
+    "Lib/PWM/Inc"
     "Lib/Receiver/Inc"
 )
 
