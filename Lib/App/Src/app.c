@@ -1,13 +1,18 @@
 #include "app.h"
 #include "receiver.h"
+#include "pwm.h"
 #include "stm32g4xx.h"
 #include "stm32g4xx_hal.h"
+#include "stm32g4xx_hal_gpio.h"
 #include "usbd_cdc_if.h"
 #include <stdint.h>
 #include <stdio.h>
 
 #define LED_RED_PORT  GPIOB
 #define LED_RED_PIN   GPIO_PIN_5
+
+// FOR DEBUG
+uint32_t t0 = 0;
 
 // ----------------------------------------------------------------------
 // PRIVATE FUNCTIONS
@@ -48,6 +53,12 @@ static void enable_peripheral_clocks() {
 void config() {
   enable_peripheral_clocks();
   receiver_init(IBUS);
+  pwm_init();
+  
+  // FOR DEBUG
+  // Initialize the LED off (LED is active low)
+  HAL_GPIO_WritePin(LED_RED_PORT, LED_RED_PIN, GPIO_PIN_SET);
+  t0 = HAL_GetTick();
 }
 
 /*!
@@ -61,6 +72,8 @@ void loop() {
   // FOR DEBUG
   if (rx.channel_data_valid) {
     rx.channel_data_valid = 0;
+
+    // Print RX outputs to USB
     uint8_t tx_buf[64];
     uint8_t tx_buf_len = snprintf(
       (char *) tx_buf, 64,
@@ -71,7 +84,18 @@ void loop() {
       rx.channel_data[3]
     );
     CDC_Transmit_FS(tx_buf, tx_buf_len);
+
+    // Pass RX outputs straight to channel outputs
+    for (int i = 0; i < NUM_CHANNELS; i++) {
+      pwm.ch_outputs[i] = (int16_t) rx.channel_data[i] - 1500;
+    }
+    pwm_update();
   }
-  // HAL_GPIO_TogglePin(LED_RED_PORT, LED_RED_PIN);
-  // HAL_Delay(500);
+
+  // FOR DEBUG
+  // The LED turns on after 1 second
+  // This helps us tell if the device browns out because the LED would shut off
+  if (HAL_GetTick() - t0 > 1000) {
+    HAL_GPIO_WritePin(LED_RED_PORT, LED_RED_PIN, GPIO_PIN_RESET);
+  }
 }
