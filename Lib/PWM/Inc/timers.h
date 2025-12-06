@@ -2,7 +2,7 @@
   @file		timers.h
   @brief	Configure timers to generate a 50Hz PWM output on the channel headers
 
-  --TIMER CONFIGURATION--
+  --TIMER PINOUT--
   Timer 2 (32-bit):
     CH1 -> PA0
     CH2 -> PA1
