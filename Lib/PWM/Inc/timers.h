@@ -19,7 +19,7 @@
 
   The outputs are only enabled if these conditions happen in order:
     1. The compare register values are >0
-    2. The timer enable function is called
+    2. The timer update cc function is called
 
   The timers are configured in a way such that the value in the compare register is
   the exact pulse width of the output in microseconds
@@ -53,8 +53,6 @@ extern timers_s timers;
 // ----------------------------------------------------------------------
 
 void timers_init(void);
-void timers_output_enable(void);
-void timers_output_disable(void);
 void timers_update_cc(void);
 
 #ifdef __cplusplus

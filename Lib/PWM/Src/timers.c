@@ -31,8 +31,6 @@ timers_s timers = {
   .tim4_cc = {0}
 };
 
-static uint8_t timer_enabled = 0;
-
 // ----------------------------------------------------------------------
 // PRIVATE FUNCTIONS
 // ----------------------------------------------------------------------
@@ -169,35 +167,7 @@ void timers_init() {
 }
 
 /*!
-  @brief Enable the PWM output from the timers
-  @details The PWM outputs only enable if the compare register value is >0,
-  otherwise the PWM output stays low
-*/
-void timers_output_enable() {
-  timer_enabled = 1;
-  timers_update_cc();
-}
-
-/*!
-  @brief Disable the PWM output from the timers
-  @details This sets the compare registers to 0 which keeps the output pins
-  held low indefinitely AFTER a PWM cycle has completed
-
-  Instead of disabling the timer outputs, this is done to keep the output pulse
-  from being truncated and prevent potential unwanted behavior from connected devices
-*/
-void timers_output_disable() {
-  timer_enabled = 0;
-  CLEAR_REG(TIM2->CCR1);
-  CLEAR_REG(TIM2->CCR2);
-  CLEAR_REG(TIM2->CCR3);
-  CLEAR_REG(TIM2->CCR4);
-  CLEAR_REG(TIM4->CCR1);
-  CLEAR_REG(TIM4->CCR2);
-}
-
-/*!
-  @brief Update the compare registers for the timers if the outputs are enabled
+  @brief Update the compare registers for the timers
   @details Timer 2 compare registers are 32-bit so the values can be directly written,
   whereas timer 4 compare registers are 16-bit so the values need to be masked before
   being written
@@ -207,12 +177,10 @@ void timers_output_disable() {
   prevent potential unwanted behavior from connected devices
 */
 void timers_update_cc() {
-  if (timer_enabled) {
-    WRITE_REG(TIM2->CCR1, timers.tim2_cc[0]);
-    WRITE_REG(TIM2->CCR2, timers.tim2_cc[1]);
-    WRITE_REG(TIM2->CCR3, timers.tim2_cc[2]);
-    WRITE_REG(TIM2->CCR4, timers.tim2_cc[3]);
-    WRITE_REG(TIM4->CCR1, timers.tim4_cc[0] & 0xFFFF);
-    WRITE_REG(TIM4->CCR2, timers.tim4_cc[1] & 0xFFFF);
-  }
+  WRITE_REG(TIM2->CCR1, timers.tim2_cc[0]);
+  WRITE_REG(TIM2->CCR2, timers.tim2_cc[1]);
+  WRITE_REG(TIM2->CCR3, timers.tim2_cc[2]);
+  WRITE_REG(TIM2->CCR4, timers.tim2_cc[3]);
+  WRITE_REG(TIM4->CCR1, timers.tim4_cc[0] & 0xFFFF);
+  WRITE_REG(TIM4->CCR2, timers.tim4_cc[1] & 0xFFFF);
 }
