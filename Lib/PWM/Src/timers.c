@@ -83,7 +83,8 @@ static void configure_pins(void) {
   @details All 4 channels of timer 2 are used but only channels 1 and 2 of timer 4 are
   used so the other 2 channels of timer 4 aren't configured
 
-  The timers start with the pin outputs held low until the timer enable function is called
+  The timers start with the pin outputs held low until the timer compare registers
+  contain values greater than 0
 */
 static void configure_timers(void) {
   /*
@@ -120,8 +121,8 @@ static void configure_timers(void) {
     counter starts at 0, the counter needs to overflow at 19999 for a total of 20000
     counts
   */
-  SET_BIT(TIM2->ARR, TIM_PERIOD-1);
-  SET_BIT(TIM4->ARR, TIM_PERIOD-1);
+  WRITE_REG(TIM2->ARR, (uint32_t) (TIM_PERIOD-1));
+  WRITE_REG(TIM4->ARR, (uint32_t) (TIM_PERIOD-1) & 0xFFFF);
 
   /*
     Enable preloading for the compare registers

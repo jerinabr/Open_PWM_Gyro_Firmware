@@ -18,7 +18,7 @@
   on the pins shown above. When the timers are initialized, the outputs are disabled.
 
   The outputs are only enabled if these conditions happen in order:
-    1. The compare register values are >0
+    1. The compare register values are greater than 0
     2. The timer update cc function is called
 
   The timers are configured in a way such that the value in the compare register is
@@ -39,10 +39,10 @@ extern "C" {
 
 // Struct to hold requested timer compare register values
 typedef struct {
-  uint32_t tim2_cc[4]; /*!< TIM2 compare registers values (0 - 4,294,967,295)
-                              Channels 0-3 */
-  uint32_t tim4_cc[2]; /*!< TIM4 compare registers values (0 - 65,535)
-                              Channels 0-1 */
+  uint32_t tim2_cc[4];  /*!< TIM2 compare registers values (32-bit)
+                              Channels 1-4 */
+  uint32_t tim4_cc[2];  /*!< TIM4 compare registers values (16-bit)
+                              Channels 1-2 */
 } timers_s;
 
 // Global instance of timers
