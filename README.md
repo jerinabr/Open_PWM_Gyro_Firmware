@@ -32,12 +32,12 @@ This is for two main reasons:
 
 ## Hardware Interfaces
 
-- [ ] Create ICM-42605 library
+- [ ] Create IMU library
   - [ ] Create SPI driver
-  - [ ] Create ICM-42605 driver
-- [ ] Create PWM library for channels
+  - [ ] Create ICM-42605 wrapper
+- [X] Create PWM library for channels
   - [X] Create timer driver
-  - [ ] Create PWM driver
+  - [X] Create PWM wrapper
 - [X] Create receiver serial library
   - [X] Create UART driver
   - [X] Create serial decoder for different RX protocols
