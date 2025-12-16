@@ -1,21 +1,21 @@
 /*!
-  @file		usart1.h
-  @brief	Configure and initialize the USART1 peripheral
+    @file   usart1.h
+    @brief  Configure and initialize the USART1 peripheral
 
-  This library initializes the USART1 peripheral with a specified configuration,
-  no parity bit, and 1 stop bit
+    This library initializes the USART1 peripheral with a specified
+    configuration, no parity bit, and 1 stop bit
 
-  If the given configuration doesn't pass a validation check, then the default
-  configuration is used to initialize the USART
+    If the given configuration doesn't pass a validation check, then the default
+    configuration is used to initialize the USART
 
-  The USART can also be reconfigured with a new configuration at any point
+    The USART can also be reconfigured with a new configuration at any point
 
-  The USART uses a FIFO to buffer RX data. To read the data from the FIFO, the
-  FIFO has to first be checked to see if it has data in it. If it does, then
-  the FIFO read function can be called
+    The USART uses a FIFO to buffer RX data. To read the data from the FIFO, the
+    FIFO has to first be checked to see if it has data in it. If it does, then
+    the FIFO read function can be called
 
-  If the FIFO buffers too much data, then it will error and will probably need to
-  be flushed I think before it can be read again
+    If the FIFO buffers too much data, then it will error and will probably need
+    to be flushed I think before it can be read again
 */
 #ifndef USART1_H
 #define USART1_H
@@ -33,10 +33,13 @@ extern "C" {
   @brief USART configuration data
 */
 typedef struct {
-  uint32_t baud_rate; /*!< Baud rate must be > 0 and <= 10,000,000 */
-  uint8_t idle_level; /*!< Indicates if the UART idle logic level is low or high
-                            0 - Idle logic level is low
-                            1 - Idle logic level is high */
+    /*!< Baud rate must be > 0 and <= 10,000,000 */
+    uint32_t baud_rate;
+
+    /*!< Indicates if the UART idle logic level is low or high
+        0 - Idle logic level is low
+        1 - Idle logic level is high */
+    uint8_t idle_level;
 } usart_config;
 
 // ----------------------------------------------------------------------

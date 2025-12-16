@@ -1,14 +1,14 @@
 /*!
-  @file		pwm.h
-  @brief	Generate 50Hz PWM output on the 6 channels to control throttle and servos
+    @file   pwm.h
+    @brief  Convert channel outputs to timer PWM outputs
 
-  -- CHANNEL MAPPING --
-  TIM4 CH2 -> CH1 (PB7)
-  TIM4 CH1 -> CH2 (PB6)
-  TIM2 CH1 -> CH3 (PA0)
-  TIM2 CH2 -> CH4 (PA1)
-  TIM2 CH3 -> CH5 (PA2)
-  TIM2 CH4 -> CH6 (PA3)
+    -- CHANNEL MAPPING --
+    TIM4 CH2 -> CH1 (PB7)
+    TIM4 CH1 -> CH2 (PB6)
+    TIM2 CH1 -> CH3 (PA0)
+    TIM2 CH2 -> CH4 (PA1)
+    TIM2 CH3 -> CH5 (PA2)
+    TIM2 CH4 -> CH6 (PA3)
 */
 #ifndef PWM_H
 #define PWM_H
@@ -26,11 +26,14 @@ extern "C" {
 
 // Struct to hold channel PWM outputs
 typedef struct {
-  int16_t ch_outputs[NUM_CHANNELS];   /*!< Integers between -500 and 500
-                                            These values are mapped to a 1000us-2000us pulse width*/
-  uint8_t ch_reversed[NUM_CHANNELS];  /*!< Indicates if the channel output is reversed
-                                            0 - Channel outputs aren't reversed
-                                            1 - Channel outputs are reversed */
+    /*!< Integers between -500 and 500
+        These values are mapped to a 1000us-2000us pulse width */
+    int16_t ch_outputs[NUM_CHANNELS];
+    
+    /*!< Indicates if the channel output is reversed
+        0 - Channel outputs aren't reversed
+        1 - Channel outputs are reversed */
+    uint8_t ch_reversed[NUM_CHANNELS];
 } pwm_s;
 
 // Global instance of pwm

@@ -1,29 +1,31 @@
 /*!
-  @file		timers.h
-  @brief	Configure timers to generate a 50Hz PWM output on the channel headers
+    @file   timers.h
+    @brief  Configure timers to generate a 50Hz PWM output on the channel
+            header pins
 
-  --TIMER PINOUT--
-  Timer 2 (32-bit):
-    CH1 -> PA0
-    CH2 -> PA1
-    CH3 -> PA2
-    CH4 -> PA3
+    --TIMER PINOUT--
+    Timer 2 (32-bit):
+        CH1 -> PA0
+        CH2 -> PA1
+        CH3 -> PA2
+        CH4 -> PA3
 
-  Timer 4 (16-bit):
-    CH1 -> PB6
-    CH2 -> PB7
+    Timer 4 (16-bit):
+        CH1 -> PB6
+        CH2 -> PB7
 
-  --OVERVIEW--
-  This library configures timers 2 and 4 in PWM mode to output a 50Hz PWM signal
-  on the pins shown above. When the timers are initialized, the outputs are disabled.
+    --OVERVIEW--
+    This library configures timers 2 and 4 in PWM mode to output a 50Hz PWM
+    signal on the pins shown above. When the timers are initialized, the outputs
+    are disabled.
 
-  The outputs are only enabled if these conditions happen in order:
-    1. The compare register values are greater than 0
-    2. The timer update cc function is called
+    The outputs are only enabled if these conditions happen in order:
+        1. The compare register values are greater than 0
+        2. The timer update cc function is called
 
-  The timers are configured in a way such that the value in the compare register is
-  the exact pulse width of the output in microseconds
-    - e.g. a CC value of 1500 would output a 1500us pulse width
+    The timers are configured in a way such that the value in the compare
+    register is the exact pulse width of the output in microseconds
+        - e.g. a CC value of 1500 would output a 1500us pulse width
 */
 #ifndef TIMERS_H
 #define TIMERS_H
@@ -39,10 +41,13 @@ extern "C" {
 
 // Struct to hold requested timer compare register values
 typedef struct {
-  uint32_t tim2_cc[4];  /*!< TIM2 compare registers values (32-bit)
-                              Channels 1-4 */
-  uint32_t tim4_cc[2];  /*!< TIM4 compare registers values (16-bit)
-                              Channels 1-2 */
+    /*!< TIM2 compare registers values (32-bit)
+        Channels 1-4 */
+    uint32_t tim2_cc[4];
+    
+    /*!< TIM4 compare registers values (16-bit)
+        Channels 1-2 */
+    uint32_t tim4_cc[2];
 } timers_s;
 
 // Global instance of timers

@@ -1,29 +1,32 @@
 /*!
-  @file		receiver.h
-  @brief	Receive and decode serial data from the connected receiver over UART
+    @file   receiver.h
+    @brief  Receive and decode serial data from the connected receiver over UART
 
-  --OVERVIEW--
-  The data can be decoded in a number of ways depending on the protocol specified
-  These protocols include:
-    - IBUS
-    - CRSF
+    --OVERVIEW--
+    The data can be decoded in a number of ways depending on the protocol
+    specified
 
-  When the receiver is initialized with a particular protocol, the decoder function
-  pointer is assigned and the USART is initialized with a configuration given by the
-  protocol.
+    These protocols include:
+        - IBUS
+        - CRSF
 
-  The data from the USART RX FIFO is sent to the decoder function and when the data
-  is successfully parsed, the decoder function updates the channel data array and sets
-  the valid flag
+    When the receiver is initialized with a particular protocol, the decoder
+    function pointer is assigned and the USART is initialized with a
+    configuration given by the protocol.
 
-  The receiver can also be reconfigured during operation to select a different protocol
+    The data from the USART RX FIFO is sent to the decoder function and when the
+    data is successfully parsed, the decoder function updates the channel data
+    array and sets the valid flag
 
-  --USAGE--
-  The receiver_init function should be called with one of the given protocols enums during
-  the program setup
+    The receiver can also be reconfigured during operation to select a different
+    protocol
 
-  The process_receiver function should be called in the main program loop on every iteration
-  of the loop
+    --USAGE--
+    The receiver_init function should be called with one of the given protocols
+    enums during the program setup
+
+    The process_receiver function should be called in the main program loop on
+    every iteration of the loop
 */
 #ifndef RECEIVER_H
 #define RECEIVER_H
@@ -41,14 +44,14 @@ extern "C" {
 
 // Receiver protocols
 typedef enum {
-  IBUS,
-  CRSF
+    IBUS,
+    CRSF
 } rx_protocols;
 
 // Struct to hold receiver data
 typedef struct {
-  uint16_t channel_data[MAX_CHANNELS];
-  uint8_t channel_data_valid;
+    uint16_t channel_data[MAX_CHANNELS];
+    uint8_t channel_data_valid;
 } receiver;
 
 // Global instance of rx
