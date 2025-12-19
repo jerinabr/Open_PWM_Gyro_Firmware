@@ -44,10 +44,14 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
 
 # Add sources to executable
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
-    # Add user sources here
+    # App library
     "Lib/App/Src/app.c"
+    # IMU library
+    "Lib/IMU/Src/spi1.c"
+    # PWM library
     "Lib/PWM/Src/pwm.c"
     "Lib/PWM/Src/timers.c"
+    # Receiver library
     "Lib/Receiver/Src/ibus.c"
     "Lib/Receiver/Src/receiver.c"
     "Lib/Receiver/Src/usart1.c"
@@ -57,6 +61,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined include paths
     "Lib/App/Inc"
+    "Lib/IMU/Inc"
     "Lib/PWM/Inc"
     "Lib/Receiver/Inc"
 )
