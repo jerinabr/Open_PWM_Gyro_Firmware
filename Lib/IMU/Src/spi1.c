@@ -52,10 +52,32 @@ static void configure_pins(void) {
     );
 }
 
+static void configure_spi1(void) {
+    /*
+        Configure SPI_CR1 register
+    */
+    SET_BIT(
+        SPI1->CR1,
+        (0b011 << SPI_CR1_BR_Pos) | // Set baud rate to 10Mbps
+        SPI_CR1_MSTR |              // Set SPI in master mode
+        SPI_CR1_CPOL |              // Set clock level to '1' when idle
+        SPI_CR1_CPHA                // Latch data on rising edge
+    );
+
+    /*
+        Configure SPI_CR2 register
+    */
+    SET_BIT(
+        SPI1->CR2,
+        SPI_CR2_SSOE    // Enable slave select output
+    );
+}
+
 // ----------------------------------------------------------------------
 // PUBLIC FUNCTIONS
 // ----------------------------------------------------------------------
 
 void spi1_init(void) {
     configure_pins();
+    configure_spi1();
 }

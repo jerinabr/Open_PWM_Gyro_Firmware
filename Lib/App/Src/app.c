@@ -51,7 +51,7 @@ static void enable_peripheral_clocks(void) {
     @details Any application configuration that happens before the main loop
     should be placed here
 */
-void config(void) {
+void app_config(void) {
     enable_peripheral_clocks();
     receiver_init(IBUS);
     pwm_init();
@@ -66,7 +66,7 @@ void config(void) {
     @brief Main loop for the application
     @details Any application code in this function will loop infinitely
 */
-void loop(void) {
+void app_loop(void) {
     // Process peripheral data
     process_receiver();
 

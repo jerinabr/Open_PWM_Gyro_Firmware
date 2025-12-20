@@ -16,8 +16,8 @@
 extern "C" {
 #endif
 
-void config(void);
-void loop(void);
+void app_config(void);
+void app_loop(void);
 
 #ifdef __cplusplus
 }
