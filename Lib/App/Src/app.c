@@ -1,6 +1,7 @@
 #include "app.h"
 #include "receiver.h"
 #include "pwm.h"
+#include "spi1.h"
 #include "stm32g431xx.h"
 #include "stm32g4xx.h"
 #include "stm32g4xx_hal.h"
@@ -55,11 +56,17 @@ void app_config(void) {
     enable_peripheral_clocks();
     receiver_init(IBUS);
     pwm_init();
+    spi1_init();
     
     // FOR DEBUG
     // Initialize the LED off (LED is active low)
     HAL_GPIO_WritePin(LED_RED_PORT, LED_RED_PIN, GPIO_PIN_SET);
     t0 = HAL_GetTick();
+
+    while (1) {
+        HAL_Delay(7000);
+        test();
+    }
 }
 
 /*!
