@@ -15,16 +15,28 @@
 #define GPIO_PA6_AF_MODE        (0x2UL << GPIO_MODER_MODE6_Pos)
 #define GPIO_PA7_AF_MODE        (0x2UL << GPIO_MODER_MODE7_Pos)
 
+#define SPI_NSS_ENABLE          GPIO_BSRR_BR4
+#define SPI_NSS_DISABLE         GPIO_BSRR_BS4
+/*
+    SPI configuration defines
+*/
 #define SPI_BR_CLK_DIV_16       (0x3UL << SPI_CR1_BR_Pos)
 
-// ----------------------------------------------------------------------
-// PRIVATE FUNCTIONS
-// ----------------------------------------------------------------------
+/* Initialize the spi1 instance */
+spi1_s spi1_buf = {
+    .tx_buf = {0},
+    .rx_buf = {0},
+    .rx_valid = 0
+};
+
+/***********************************************************************
+-- PRIVATE FUNCTIONS --
+***********************************************************************/
 
 /*!
     @brief Configure GPIO pins PA4-PA7 for use by the SPI1 peripheral
     @details Pins PA5-PA7 are controlled directly by the hardware but pin PA4
-    is controlled by the software because the hardware control is finnicky
+    (NSS) is controlled by the software because the hardware control is finicky
 */
 static void configure_pins(void) {
     /* Set alternate function for PA5-PA7 as SPI1 pins */
@@ -49,7 +61,7 @@ static void configure_pins(void) {
     );
 
     /* SPI NSS pin is active-low so initialize it high */
-    SET_BIT(GPIOA->BSRR, GPIO_BSRR_BS4);
+    SET_BIT(GPIOA->BSRR, SPI_NSS_DISABLE);
 }
 
 /*!
@@ -73,9 +85,9 @@ static void configure_spi1(void) {
     );
 }
 
-// ----------------------------------------------------------------------
-// PUBLIC FUNCTIONS
-// ----------------------------------------------------------------------
+/***********************************************************************
+-- PUBLIC FUNCTIONS --
+***********************************************************************/
 
 /*!
     @brief Initialize the SPI1 peripheral and pins
@@ -83,6 +95,19 @@ static void configure_spi1(void) {
 void spi1_init(void) {
     configure_pins();
     configure_spi1();
+}
+
+void spi1_transact_data(size_t num_words) {
+    /* Enable SPI transaction */
+    SET_BIT(GPIOA->BSRR, SPI_NSS_ENABLE);
+    SET_BIT(SPI1->CR1, SPI_CR1_SPE);
+    
+    /* Do stuff */
+
+    /* Disable SPI after it's completed the transaction */
+    while (SPI1->SR & SPI_SR_BSY_Msk);
+    SET_BIT(GPIOA->BSRR, SPI_NSS_DISABLE);
+    CLEAR_BIT(SPI1->CR1, SPI_CR1_SPE);
 }
 
 void test(void) {

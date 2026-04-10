@@ -20,9 +20,25 @@
 #ifndef SPI1_H
 #define SPI1_H
 
+#include <stdint.h>
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#define BUF_LEN 32
+
+/***********************************************************************
+-- TYPES --
+***********************************************************************/
+
+typedef struct {
+    uint8_t tx_buf[BUF_LEN];
+    uint8_t rx_buf[BUF_LEN];
+    uint8_t rx_valid;
+} spi1_s;
+
+/* Global instance of spi1_s */
+extern spi1_s spi1_buf;
 
 /***********************************************************************
 -- FUNCTIONS --
