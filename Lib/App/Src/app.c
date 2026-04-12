@@ -13,12 +13,12 @@
 #define LED_RED_PORT    GPIOB
 #define LED_RED_PIN     GPIO_PIN_5
 
-// FOR DEBUG
+/* FOR DEBUG */
 uint32_t t0 = 0;
 
-// ----------------------------------------------------------------------
-// PRIVATE FUNCTIONS
-// ----------------------------------------------------------------------
+/***********************************************************************
+-- PRIVATE FUNCTIONS --
+***********************************************************************/
 
 /*!
     @brief Enable clocks to the peripherals used in this design
@@ -27,25 +27,30 @@ uint32_t t0 = 0;
     active, so we read the register after writing it to cause a bit of delay
 */
 static void enable_peripheral_clocks(void) {
-    // Enable clock for GPIO Ports A and B
+    /* Enable clocks for DMAMUX and DMA1 */
+    uint32_t AHB1ENR_Mask = RCC_AHB1ENR_DMAMUX1EN | RCC_AHB1ENR_DMA1EN;
+    SET_BIT(RCC->AHB1ENR, AHB1ENR_Mask);
+    while (!READ_BIT(RCC->AHB1ENR, AHB1ENR_Mask));
+
+    /* Enable clock for GPIO Ports A and B */
     uint32_t AHB2ENR_Mask = RCC_AHB2ENR_GPIOAEN | RCC_AHB2ENR_GPIOBEN;
     SET_BIT(RCC->AHB2ENR, AHB2ENR_Mask);
     while (!READ_BIT(RCC->AHB2ENR, AHB2ENR_Mask));
 
-    // Enable clock for TIM2 and TIM4
+    /* Enable clock for TIM2 and TIM4 */
     uint32_t APB1ENR1_Mask = RCC_APB1ENR1_TIM2EN | RCC_APB1ENR1_TIM4EN;
     SET_BIT(RCC->APB1ENR1, APB1ENR1_Mask);
     while (!READ_BIT(RCC->APB1ENR1, APB1ENR1_Mask));
     
-    // Enable clock for USART1 and SPI1
+    /* Enable clock for USART1 and SPI1 */
     uint32_t APB2ENR_Mask = RCC_APB2ENR_USART1EN | RCC_APB2ENR_SPI1EN;
     SET_BIT(RCC->APB2ENR, APB2ENR_Mask);
     while (!READ_BIT(RCC->APB2ENR, APB2ENR_Mask));
 }
 
-// ----------------------------------------------------------------------
-// PUBLIC FUNCTIONS
-// ----------------------------------------------------------------------
+/***********************************************************************
+-- PUBLIC FUNCTIONS --
+***********************************************************************/
 
 /*!
     @brief Configure the application
@@ -58,14 +63,19 @@ void app_config(void) {
     pwm_init();
     spi1_init();
     
-    // FOR DEBUG
-    // Initialize the LED off (LED is active low)
+    /* FOR DEBUG */
+    /* Initialize the LED off (LED is active low) */
     HAL_GPIO_WritePin(LED_RED_PORT, LED_RED_PIN, GPIO_PIN_SET);
     t0 = HAL_GetTick();
 
     while (1) {
         HAL_Delay(7000);
-        test();
+        spi1_buf.tx_buf[0] = 0x80 | 0x75;
+        spi1_buf.tx_buf[1] = 0xFF;
+        spi1_transact_data(2);
+        uint8_t nothing = spi1_buf.rx_buf[0];
+        uint8_t data = spi1_buf.rx_buf[1];
+        // test();
     }
 }
 
@@ -74,14 +84,14 @@ void app_config(void) {
     @details Any application code in this function will loop infinitely
 */
 void app_loop(void) {
-    // Process peripheral data
+    /* Process peripheral data */
     process_receiver();
 
-    // FOR DEBUG
+    /* FOR DEBUG */
     if (rx.channel_data_valid) {
         rx.channel_data_valid = 0;
 
-        // Print RX outputs to USB
+        /* Print RX outputs to USB */
         uint8_t tx_buf[64];
         uint8_t tx_buf_len = snprintf(
             (char *) tx_buf, 64,
@@ -93,18 +103,19 @@ void app_loop(void) {
         );
         CDC_Transmit_FS(tx_buf, tx_buf_len);
 
-        // Pass RX outputs straight to channel outputs
+        /* Pass RX outputs straight to channel outputs */
         for (int i = 0; i < NUM_CHANNELS; i++) {
             pwm.ch_outputs[i] = (int16_t) rx.channel_data[i] - 1500;
         }
         pwm_update();
     }
 
-    // FOR DEBUG
     /*
-       The LED turns on after 1 second 
-       This helps us tell if the device browns out because the LED would shut
-       off when the device starts up
+        FOR DEBUG
+
+        The LED turns on after 1 second 
+        This helps us tell if the device browns out because the LED would shut
+        off when the device starts up
     */
     if (HAL_GetTick() - t0 > 1000) {
         HAL_GPIO_WritePin(LED_RED_PORT, LED_RED_PIN, GPIO_PIN_RESET);

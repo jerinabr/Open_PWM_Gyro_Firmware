@@ -34,7 +34,6 @@ extern "C" {
 typedef struct {
     uint8_t tx_buf[BUF_LEN];
     uint8_t rx_buf[BUF_LEN];
-    uint8_t rx_valid;
 } spi1_s;
 
 /* Global instance of spi1_s */
@@ -45,6 +44,7 @@ extern spi1_s spi1_buf;
 ***********************************************************************/
 
 void spi1_init(void);
+void spi1_transact_data(uint32_t num_bytes);
 void test(void);
 
 #ifdef __cplusplus
