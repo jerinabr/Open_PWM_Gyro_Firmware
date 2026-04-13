@@ -8,14 +8,17 @@
     SPI1_MISO -> PA6
     SPI1_MOSI -> PA7
 
-    The pins are controlled by the hardware except for pin PA4
+    The pins are controlled by the hardware except for NSS (pin PA4).
 
-    This is because the hardware would keep the NSS pin held low as long as
-    the SPI peripheral is enabled and in master mode, OR it would pulse NSS
-    after every byte transaction
+    This is because the hardware will keep the NSS pin held low as long as the
+    SPI peripheral is enabled and in master mode, OR it will pulse NSS after
+    every byte transaction.
 
     We want to be able to send variable-length data frames with the NSS only
-    held low during the transaction, so we control the NSS pin via software
+    held low during the transaction, so we control the NSS pin via software.
+
+    The SPI transactions are done using DMA to ensure a continuous data stream
+    and the fastest transaction.
 */
 #ifndef SPI1_H
 #define SPI1_H
@@ -25,27 +28,16 @@
 extern "C" {
 #endif
 
-#define BUF_LEN 32
-
-/***********************************************************************
--- TYPES --
-***********************************************************************/
-
-typedef struct {
-    uint8_t tx_buf[BUF_LEN];
-    uint8_t rx_buf[BUF_LEN];
-} spi1_s;
-
-/* Global instance of spi1_s */
-extern spi1_s spi1_buf;
-
 /***********************************************************************
 -- FUNCTIONS --
 ***********************************************************************/
 
 void spi1_init(void);
-void spi1_transact_data(uint32_t num_bytes);
-void test(void);
+void spi1_transact_data(
+    uint8_t *tx_buf,
+    volatile uint8_t *rx_buf,
+    uint32_t num_bytes
+);
 
 #ifdef __cplusplus
 }

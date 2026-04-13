@@ -70,12 +70,10 @@ void app_config(void) {
 
     while (1) {
         HAL_Delay(7000);
-        spi1_buf.tx_buf[0] = 0x80 | 0x75;
-        spi1_buf.tx_buf[1] = 0xFF;
-        spi1_transact_data(2);
-        uint8_t nothing = spi1_buf.rx_buf[0];
-        uint8_t data = spi1_buf.rx_buf[1];
-        // test();
+        uint8_t tx_buf[2] = {0x80 | 0x75, 0xFF};
+        uint8_t rx_buf[2];
+        spi1_transact_data(tx_buf, rx_buf, 2);
+        uint8_t data = rx_buf[1];
     }
 }
 
