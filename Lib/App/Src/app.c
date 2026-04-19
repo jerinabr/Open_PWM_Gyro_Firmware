@@ -1,6 +1,7 @@
 #include "app.h"
 #include "receiver.h"
 #include "pwm.h"
+#include "imu.h"
 #include "spi1.h"
 #include "stm32g431xx.h"
 #include "stm32g4xx.h"
@@ -61,7 +62,7 @@ void app_config(void) {
     enable_peripheral_clocks();
     receiver_init(IBUS);
     pwm_init();
-    spi1_init();
+    uint8_t imu_status = imu_init();
     
     /* FOR DEBUG */
     /* Initialize the LED off (LED is active low) */
@@ -70,9 +71,11 @@ void app_config(void) {
 
     while (1) {
         HAL_Delay(7000);
-        uint8_t tx_buf[2] = {0x80 | 0x75, 0xFF};
+        uint8_t tx_buf[2] = {0x80 | WHO_AM_I_REG, 0xFF};
         uint8_t rx_buf[2];
-        spi1_transact_data(tx_buf, rx_buf, 2);
+        uint8_t error;
+        spi1_transact_data(tx_buf, rx_buf, 2, &error);
+        // imu_read(WHO_AM_I_REG, rx_buf, 1);
         uint8_t data = rx_buf[1];
     }
 }

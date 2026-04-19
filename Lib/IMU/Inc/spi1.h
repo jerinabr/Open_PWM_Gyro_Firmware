@@ -32,11 +32,16 @@ extern "C" {
 -- FUNCTIONS --
 ***********************************************************************/
 
-void spi1_init(void);
+void spi1_init(
+    uint8_t polarity,
+    uint8_t phase,
+    uint8_t baud_rate
+);
 void spi1_transact_data(
-    uint8_t *tx_buf,
-    volatile uint8_t *rx_buf,
-    uint32_t num_bytes
+    uint8_t tx_buf[],
+    volatile uint8_t rx_buf[],
+    uint32_t num_bytes,
+    uint8_t *error
 );
 
 #ifdef __cplusplus

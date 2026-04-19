@@ -47,6 +47,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # App library
     "Lib/App/Src/app.c"
     # IMU library
+    "Lib/IMU/Src/imu.c"
     "Lib/IMU/Src/spi1.c"
     # PWM library
     "Lib/PWM/Src/pwm.c"

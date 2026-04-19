@@ -34,6 +34,10 @@
 volatile uint8_t tx_dma_transfer_complete = 0;
 volatile uint8_t rx_dma_transfer_complete = 0;
 
+/* DEBUG */
+volatile uint8_t tx_dma_error = 0;
+volatile uint8_t rx_dma_error = 0;
+
 /***********************************************************************
 -- PRIVATE FUNCTIONS --
 ***********************************************************************/
@@ -72,15 +76,22 @@ static void configure_pins(void) {
 /*!
     @brief Configure the SPI1 peripheral in master mode at 10MHz
 */
-static void configure_spi1(void) {
+static void configure_spi1(uint8_t polarity, uint8_t phase, uint8_t baud_rate) {
+    /* Determine CR1 register bits */
+    const uint32_t CPOL = (polarity & 0x1) << SPI_CR1_CPOL_Pos;
+    const uint32_t CPHA = (phase & 0x1) << SPI_CR1_CPHA_Pos;
+    const uint32_t BR_VAL = (baud_rate & 0x7) << SPI_CR1_BR_Pos;
+
     /* Configure SPI_CR1 register */
     SET_BIT(
         SPI1->CR1,
         SPI_CR1_SSM |       /* Chip select is controlled by software */
         SPI_CR1_SSI |       /* If this isn't set, the RX FIFO empty flag will
                                 never go low for some reason */
-        SPI_BR_CLK_DIV_16 | /* Set baud rate to 10Mbps */
-        SPI_CR1_MSTR        /* Set SPI in master mode */
+        BR_VAL |            /* Set baud rate */
+        SPI_CR1_MSTR |      /* Set SPI in master mode */
+        CPOL |              /* Configure polarity */
+        CPHA                /* Configure phase */
     );
 
     /* Configure SPI_CR2 register */
@@ -117,6 +128,7 @@ static void configure_dma(void) {
         DMA_PL_SPI1_TX |    /* Set the DMA channel priority level */
         DMA_CCR_MINC |      /* Enable memory increment mode */
         DMA_CCR_DIR |       /* Set the direction as memory-to-peripheral */
+        DMA_CCR_TEIE |      /* Enable the transfer error interrupt */
         DMA_CCR_TCIE        /* Enable the transfer complete interrupt */
     );
 
@@ -125,6 +137,7 @@ static void configure_dma(void) {
         SPI1_RX_DMA_CHANNEL->CCR,
         DMA_PL_SPI1_RX |    /* Set the DMA channel priority level */
         DMA_CCR_MINC |      /* Enable memory increment mode */
+        DMA_CCR_TEIE |      /* Enable the transfer error interrupt */
         DMA_CCR_TCIE        /* Enable the transfer complete interrupt */
     );
 
@@ -140,9 +153,9 @@ static void configure_dma(void) {
 /*!
     @brief Initialize the SPI1 peripheral and DMA interrupts
 */
-void spi1_init(void) {
+void spi1_init(uint8_t polarity, uint8_t phase, uint8_t baud_rate) {
     configure_pins();
-    configure_spi1();
+    configure_spi1(polarity, phase, baud_rate);
     configure_dma();
     
     NVIC_SetPriority(
@@ -175,9 +188,10 @@ void spi1_init(void) {
     completed.
 */
 void spi1_transact_data(
-    uint8_t *tx_buf,
-    volatile uint8_t *rx_buf,
-    uint32_t num_bytes
+    uint8_t tx_buf[],
+    volatile uint8_t rx_buf[],
+    uint32_t num_bytes,
+    uint8_t *error
 ) {
     /*
         Configure and enable DMA
@@ -212,17 +226,21 @@ void spi1_transact_data(
     CLEAR_BIT(SPI1_TX_DMA_CHANNEL->CCR, DMA_CCR_EN);
     CLEAR_BIT(SPI1_RX_DMA_CHANNEL->CCR, DMA_CCR_EN);
 
-    /* Disable SPI after the transaction is completed */
+    /* Disable SPI after the busy flag goes low and the TX FIFO is empty */
     while (SPI1->SR & (SPI_SR_BSY_Msk | SPI_SR_FTLVL_Msk));
     SET_BIT(GPIOA->BSRR, SPI_NSS_DISABLE);
     CLEAR_BIT(SPI1->CR1, SPI_CR1_SPE);
 
-    /* Disable SPI DMA */
+    /* Disable SPI DMA requests */
     CLEAR_BIT(
         SPI1->CR2,
         SPI_CR2_TXDMAEN |
         SPI_CR2_RXDMAEN
     );
+
+    *error = (tx_dma_error << 1) | rx_dma_error;
+    tx_dma_error = 0;
+    rx_dma_error = 0;
 }
 
 /***********************************************************************
@@ -234,6 +252,10 @@ void spi1_transact_data(
     completes the transfer
 */
 void SPI1_TX_DMA_IRQ(void) {
+    if (DMA1->ISR & SPI1_TX_DMA_TEIF) {
+        tx_dma_error = 1;
+        SET_BIT(DMA1->IFCR, SPI1_TX_DMA_CTEIF);
+    }
     if (DMA1->ISR & SPI1_TX_DMA_TCIF) {
         tx_dma_transfer_complete = 1;
         SET_BIT(DMA1->IFCR, SPI1_TX_DMA_CTCIF);
@@ -245,6 +267,10 @@ void SPI1_TX_DMA_IRQ(void) {
     completes the transfer
 */
 void SPI1_RX_DMA_IRQ(void) {
+    if (DMA1->ISR & SPI1_RX_DMA_TEIF) {
+        rx_dma_error = 1;
+        SET_BIT(DMA1->IFCR, SPI1_RX_DMA_CTEIF);
+    }
     if (DMA1->ISR & SPI1_RX_DMA_TCIF) {
         rx_dma_transfer_complete = 1;
         SET_BIT(DMA1->IFCR, SPI1_RX_DMA_CTCIF);
