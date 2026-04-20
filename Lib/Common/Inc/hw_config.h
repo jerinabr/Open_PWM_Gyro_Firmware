@@ -21,17 +21,13 @@ extern "C" {
 #define SPI1_RX_DMA_CHANNEL         DMA1_Channel1
 #define SPI1_RX_DMAMUX_CHANNEL      DMAMUX1_Channel0
 #define SPI1_RX_DMA_PRIORITY        0b11 /* Very high */
-#define SPI1_RX_DMA_TEIF            DMA_ISR_TEIF1
 #define SPI1_RX_DMA_TCIF            DMA_ISR_TCIF1
-#define SPI1_RX_DMA_CTEIF           DMA_IFCR_CTEIF1
 #define SPI1_RX_DMA_CTCIF           DMA_IFCR_CTCIF1
 
 #define SPI1_TX_DMA_CHANNEL         DMA1_Channel2
 #define SPI1_TX_DMAMUX_CHANNEL      DMAMUX1_Channel1
 #define SPI1_TX_DMA_PRIORITY        0b01 /* Medium */
-#define SPI1_TX_DMA_TEIF            DMA_ISR_TEIF2
 #define SPI1_TX_DMA_TCIF            DMA_ISR_TCIF2
-#define SPI1_TX_DMA_CTEIF           DMA_IFCR_CTEIF2
 #define SPI1_TX_DMA_CTCIF           DMA_IFCR_CTCIF2
 
 #define USART1_RX_DMA_CHANNEL       DMA1_Channel3

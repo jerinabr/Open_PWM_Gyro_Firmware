@@ -6,7 +6,6 @@
 #define IMU_H
 
 #include <stdint.h>
-#include <sys/types.h>
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -24,33 +23,23 @@ extern "C" {
 -- FUNCTIONS --
 ***********************************************************************/
 
-int imu_init(uint8_t *error);
+int imu_init(void);
 
 void imu_write_byte(
     uint8_t addr,
-    uint8_t data,
-    uint8_t *error
+    uint8_t data
 );
 
 /* Read functions for single or multi-byte reads */
-void imu_read(
-    uint8_t addr,
-    uint8_t rx_buf[],
-    uint32_t num_bytes,
-    uint8_t *error
-);
-
 void imu_read_byte(
     uint8_t addr,
-    uint8_t *data,
-    uint8_t *error
+    uint8_t *data
 );
 
 void imu_read_bytes(
     uint8_t addr,
     uint8_t data[],
-    uint32_t num_bytes,
-    uint8_t *error
+    uint32_t num_bytes
 );
 
 #ifdef __cplusplus

@@ -19,6 +19,19 @@
 
     The SPI transactions are done using DMA to ensure a continuous data stream
     and the fastest transaction.
+
+    NOTE: The SPI is kept enabled from initialization instead of being enabled
+    at the start of a transaction and disabled at the end of it.
+    
+    This is because the STM32 releases the GPIO lines when the SPI is disabled
+    so if the clock polarity is 1, the SCLK line will still be low until the
+    interface is enabled.
+    
+    This is problematic because if the TX FIFO is written to before the
+    peripheral is enabled, then once it is enabled the clock lines goes high
+    before going back low. This timing can cause unexpected behavior from the
+    SPI device if the chip-select line isn't enabled right after the low-to-high
+    transition.
 */
 #ifndef SPI1_H
 #define SPI1_H
@@ -37,11 +50,11 @@ void spi1_init(
     uint8_t phase,
     uint8_t baud_rate
 );
+
 void spi1_transact_data(
     uint8_t tx_buf[],
     volatile uint8_t rx_buf[],
-    uint32_t num_bytes,
-    uint8_t *dma_error
+    uint32_t num_bytes
 );
 
 #ifdef __cplusplus

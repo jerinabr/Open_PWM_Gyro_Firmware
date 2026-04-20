@@ -34,10 +34,6 @@
 volatile uint8_t tx_dma_transfer_complete = 0;
 volatile uint8_t rx_dma_transfer_complete = 0;
 
-/* DEBUG */
-volatile uint8_t tx_dma_error = 0;
-volatile uint8_t rx_dma_error = 0;
-
 /***********************************************************************
 -- PRIVATE FUNCTIONS --
 ***********************************************************************/
@@ -131,7 +127,6 @@ static void configure_dma(void) {
         DMA_PL_SPI1_TX |    /* Set the DMA channel priority level */
         DMA_CCR_MINC |      /* Enable memory increment mode */
         DMA_CCR_DIR |       /* Set the direction as memory-to-peripheral */
-        DMA_CCR_TEIE |      /* Enable the transfer error interrupt */
         DMA_CCR_TCIE        /* Enable the transfer complete interrupt */
     );
 
@@ -140,7 +135,6 @@ static void configure_dma(void) {
         SPI1_RX_DMA_CHANNEL->CCR,
         DMA_PL_SPI1_RX |    /* Set the DMA channel priority level */
         DMA_CCR_MINC |      /* Enable memory increment mode */
-        DMA_CCR_TEIE |      /* Enable the transfer error interrupt */
         DMA_CCR_TCIE        /* Enable the transfer complete interrupt */
     );
 
@@ -183,9 +177,8 @@ void spi1_init(uint8_t polarity, uint8_t phase, uint8_t baud_rate) {
     peripheral. This ensures that the data will be a continuous stream and the
     transaction will complete as fast as possible.
 
-    The data to be transmitted must be loaded into spi1_buf.tx_buf
-    before this function is called. Once the transaction completes, the received
-    data will be in spi1_buf.rx_buf.
+    The SPI is kept enabled during the entire transaction and only the DMA and
+    chip-select are enabled/disabled.
     
     This function will block the processor until the transaction is
     completed.
@@ -193,8 +186,7 @@ void spi1_init(uint8_t polarity, uint8_t phase, uint8_t baud_rate) {
 void spi1_transact_data(
     uint8_t tx_buf[],
     volatile uint8_t rx_buf[],
-    uint32_t num_bytes,
-    uint8_t *dma_error
+    uint32_t num_bytes
 ) {
     /*
         Configure and enable DMA
@@ -228,7 +220,7 @@ void spi1_transact_data(
     SET_BIT(SPI1_RX_DMA_CHANNEL->CCR, DMA_CCR_EN);
     SET_BIT(SPI1->CR2, SPI_CR2_TXDMAEN);
 
-    /* Disable the DMA channels after the transfers are completed */
+    /* Disable DMA channels after transfers are completed */
     while (!tx_dma_transfer_complete || !rx_dma_transfer_complete);
     CLEAR_BIT(SPI1_TX_DMA_CHANNEL->CCR, DMA_CCR_EN);
     CLEAR_BIT(SPI1_RX_DMA_CHANNEL->CCR, DMA_CCR_EN);
@@ -240,20 +232,9 @@ void spi1_transact_data(
         SPI_CR2_RXDMAEN
     );
 
-    /*
-        Disable chip-select after the busy flag goes low and the TX FIFO is
-        empty
-    */
+    /* Disable chip-select after busy flag goes low and TX FIFO is empty */
     while (SPI1->SR & (SPI_SR_BSY_Msk | SPI_SR_FTLVL_Msk));
     SET_BIT(GPIOA->BSRR, SPI_NSS_DISABLE);
-
-    /* Report DMA errors if there were any */
-    uint8_t frlvl = (SPI1->SR & SPI_SR_FRLVL_Msk) >> SPI_SR_FRLVL_Pos;
-    *dma_error =    frlvl << 2 |
-                    (tx_dma_error << 1) |
-                    rx_dma_error;
-    tx_dma_error = 0;
-    rx_dma_error = 0;
 }
 
 /***********************************************************************
@@ -265,10 +246,6 @@ void spi1_transact_data(
     completes the transfer
 */
 void SPI1_TX_DMA_IRQ(void) {
-    if (DMA1->ISR & SPI1_TX_DMA_TEIF) {
-        tx_dma_error = 1;
-        SET_BIT(DMA1->IFCR, SPI1_TX_DMA_CTEIF);
-    }
     if (DMA1->ISR & SPI1_TX_DMA_TCIF) {
         tx_dma_transfer_complete = 1;
         SET_BIT(DMA1->IFCR, SPI1_TX_DMA_CTCIF);
@@ -280,10 +257,6 @@ void SPI1_TX_DMA_IRQ(void) {
     completes the transfer
 */
 void SPI1_RX_DMA_IRQ(void) {
-    if (DMA1->ISR & SPI1_RX_DMA_TEIF) {
-        rx_dma_error = 1;
-        SET_BIT(DMA1->IFCR, SPI1_RX_DMA_CTEIF);
-    }
     if (DMA1->ISR & SPI1_RX_DMA_TCIF) {
         rx_dma_transfer_complete = 1;
         SET_BIT(DMA1->IFCR, SPI1_RX_DMA_CTCIF);
