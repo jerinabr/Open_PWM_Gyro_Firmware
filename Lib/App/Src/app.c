@@ -2,7 +2,6 @@
 #include "receiver.h"
 #include "pwm.h"
 #include "imu.h"
-#include "spi1.h"
 #include "stm32g431xx.h"
 #include "stm32g4xx.h"
 #include "stm32g4xx_hal.h"
@@ -62,7 +61,27 @@ void app_config(void) {
     enable_peripheral_clocks();
     receiver_init(IBUS);
     pwm_init();
-    uint8_t imu_status = imu_init();
+    HAL_Delay(5000);
+    uint8_t error;
+    uint8_t imu_status = imu_init(&error);
+    if (imu_status == EXIT_SUCCESS) {
+        uint8_t tx_buf[64];
+        uint8_t tx_buf_len = snprintf(
+            (char*) tx_buf, 64,
+            "IMU Good, err: %u\r\n",
+            error
+        );
+        CDC_Transmit_FS(tx_buf, tx_buf_len);
+    }
+    else {
+        uint8_t tx_buf[64];
+        uint8_t tx_buf_len = snprintf(
+            (char*) tx_buf, 64,
+            "IMU Bad, err: %u\r\n",
+            error
+        );
+        CDC_Transmit_FS(tx_buf, tx_buf_len);
+    }
     
     /* FOR DEBUG */
     /* Initialize the LED off (LED is active low) */
@@ -70,13 +89,22 @@ void app_config(void) {
     t0 = HAL_GetTick();
 
     while (1) {
-        HAL_Delay(7000);
-        uint8_t tx_buf[2] = {0x80 | WHO_AM_I_REG, 0xFF};
-        uint8_t rx_buf[2];
+        HAL_Delay(2000);
+        // uint8_t tx_buf[2] = {0x80 | WHO_AM_I_REG, 0xFF};
+        // uint8_t rx_buf[2];
+        // uint8_t error;
+        // spi1_transact_data(tx_buf, rx_buf, 2, &error);
+        uint8_t reg_data;
         uint8_t error;
-        spi1_transact_data(tx_buf, rx_buf, 2, &error);
-        // imu_read(WHO_AM_I_REG, rx_buf, 1);
-        uint8_t data = rx_buf[1];
+        imu_read_byte(WHO_AM_I_REG, &reg_data, &error);
+        uint8_t tx_buf[64];
+        uint8_t tx_buf_len = snprintf(
+            (char*) tx_buf, 64,
+            "WHO_AM_I: %u, err: %u\r\n",
+            reg_data,
+            error
+        );
+        CDC_Transmit_FS(tx_buf, tx_buf_len);
     }
 }
 
@@ -95,7 +123,7 @@ void app_loop(void) {
         /* Print RX outputs to USB */
         uint8_t tx_buf[64];
         uint8_t tx_buf_len = snprintf(
-            (char *) tx_buf, 64,
+            (char*) tx_buf, 64,
             "Ch1: %hu\tCh2: %hu\tCh3: %hu\tCh4: %hu\r\n",
             rx.channel_data[0],
             rx.channel_data[1],

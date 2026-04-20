@@ -99,6 +99,9 @@ static void configure_spi1(uint8_t polarity, uint8_t phase, uint8_t baud_rate) {
         SPI1->CR2,
         SPI_CR2_FRXTH /* Set FIFO not empty event to happen when 1/4 full */
     );
+
+    /* Enable the SPI peripheral */
+    SET_BIT(SPI1->CR1, SPI_CR1_SPE);
 }
 
 /*!
@@ -191,7 +194,7 @@ void spi1_transact_data(
     uint8_t tx_buf[],
     volatile uint8_t rx_buf[],
     uint32_t num_bytes,
-    uint8_t *error
+    uint8_t *dma_error
 ) {
     /*
         Configure and enable DMA
@@ -212,24 +215,23 @@ void spi1_transact_data(
     WRITE_REG(SPI1_RX_DMA_CHANNEL->CMAR, (uint32_t) rx_buf);
     WRITE_REG(SPI1_RX_DMA_CHANNEL->CNDTR, num_bytes);
 
+    /* Enable chip-select */
+    SET_BIT(GPIOA->BSRR, SPI_NSS_ENABLE);
+
+    /* Reset DMA transfer status flags */
+    tx_dma_transfer_complete = 0;
+    rx_dma_transfer_complete = 0;
+
+    /* Enable SPI DMA */
     SET_BIT(SPI1->CR2, SPI_CR2_RXDMAEN);
     SET_BIT(SPI1_TX_DMA_CHANNEL->CCR, DMA_CCR_EN);
     SET_BIT(SPI1_RX_DMA_CHANNEL->CCR, DMA_CCR_EN);
     SET_BIT(SPI1->CR2, SPI_CR2_TXDMAEN);
 
-    /* Enable SPI transaction */
-    SET_BIT(GPIOA->BSRR, SPI_NSS_ENABLE);
-    SET_BIT(SPI1->CR1, SPI_CR1_SPE);
-
     /* Disable the DMA channels after the transfers are completed */
     while (!tx_dma_transfer_complete || !rx_dma_transfer_complete);
     CLEAR_BIT(SPI1_TX_DMA_CHANNEL->CCR, DMA_CCR_EN);
     CLEAR_BIT(SPI1_RX_DMA_CHANNEL->CCR, DMA_CCR_EN);
-
-    /* Disable SPI after the busy flag goes low and the TX FIFO is empty */
-    while (SPI1->SR & (SPI_SR_BSY_Msk | SPI_SR_FTLVL_Msk));
-    SET_BIT(GPIOA->BSRR, SPI_NSS_DISABLE);
-    CLEAR_BIT(SPI1->CR1, SPI_CR1_SPE);
 
     /* Disable SPI DMA requests */
     CLEAR_BIT(
@@ -238,7 +240,18 @@ void spi1_transact_data(
         SPI_CR2_RXDMAEN
     );
 
-    *error = (tx_dma_error << 1) | rx_dma_error;
+    /*
+        Disable chip-select after the busy flag goes low and the TX FIFO is
+        empty
+    */
+    while (SPI1->SR & (SPI_SR_BSY_Msk | SPI_SR_FTLVL_Msk));
+    SET_BIT(GPIOA->BSRR, SPI_NSS_DISABLE);
+
+    /* Report DMA errors if there were any */
+    uint8_t frlvl = (SPI1->SR & SPI_SR_FRLVL_Msk) >> SPI_SR_FRLVL_Pos;
+    *dma_error =    frlvl << 2 |
+                    (tx_dma_error << 1) |
+                    rx_dma_error;
     tx_dma_error = 0;
     rx_dma_error = 0;
 }

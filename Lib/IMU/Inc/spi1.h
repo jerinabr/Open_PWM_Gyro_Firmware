@@ -41,7 +41,7 @@ void spi1_transact_data(
     uint8_t tx_buf[],
     volatile uint8_t rx_buf[],
     uint32_t num_bytes,
-    uint8_t *error
+    uint8_t *dma_error
 );
 
 #ifdef __cplusplus
