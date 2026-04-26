@@ -1,5 +1,6 @@
 #include "imu.h"
 #include "spi1.h"
+#include "systick.h"
 #include <stdint.h>
 #include <stdlib.h>
 
@@ -75,6 +76,12 @@ int imu_init(void) {
         return EXIT_FAILURE;
     }
     return EXIT_SUCCESS;
+
+    /* Soft reset the IMU */
+    imu_write_byte(DEVICE_CONFIG_REG, 0x1);
+
+    /* Wait 1 ms before attempting any register access */
+    delay_ms(1);
 }
 
 /*!
