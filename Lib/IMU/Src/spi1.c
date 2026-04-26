@@ -16,6 +16,9 @@
 #define GPIO_PA6_AF_MODE        (0x2UL << GPIO_MODER_MODE6_Pos)
 #define GPIO_PA7_AF_MODE        (0x2UL << GPIO_MODER_MODE7_Pos)
 
+#define GPIO_PA5_OSPEEDR_MS     (0x1UL << GPIO_OSPEEDR_OSPEED5_Pos)
+#define GPIO_PA7_OSPEEDR_MS     (0x1UL << GPIO_OSPEEDR_OSPEED7_Pos)
+
 #define SPI_NSS_ENABLE          GPIO_BSRR_BR4
 #define SPI_NSS_DISABLE         GPIO_BSRR_BS4
 /*
@@ -41,7 +44,8 @@ volatile uint8_t rx_dma_transfer_complete = 0;
 /*!
     @brief Configure GPIO pins PA4-PA7 for use by the SPI1 peripheral
     @details Pins PA5-PA7 are controlled directly by the hardware but pin PA4
-    (NSS) is controlled by the software because the hardware control is finicky
+    (chip select) is controlled by the software because the hardware control is
+    finicky
 */
 static void configure_pins(void) {
     /* Set alternate function for PA5-PA7 as SPI1 pins */
@@ -52,7 +56,8 @@ static void configure_pins(void) {
         GPIO_PA7_AF5_SPI1_MOSI
     );
 
-    /* Set PA5-PA7 in alternate function mode */
+    /* Set SCK, MOSI, and MISO pins in alternate function mode and the chip
+        select pin as general-purpose output to be controlled by software */
     MODIFY_REG(
         GPIOA->MODER,
         GPIO_MODER_MODE4 |
@@ -63,6 +68,13 @@ static void configure_pins(void) {
         GPIO_PA5_AF_MODE |
         GPIO_PA6_AF_MODE |
         GPIO_PA7_AF_MODE
+    );
+
+    /* Set SCK and MOSI output speeds as medium speed */
+    SET_BIT(
+        GPIOA->OSPEEDR,
+        GPIO_PA5_OSPEEDR_MS |
+        GPIO_PA7_OSPEEDR_MS
     );
 
     /* SPI NSS pin is active-low so initialize it high */

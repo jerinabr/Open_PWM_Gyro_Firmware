@@ -100,7 +100,10 @@ void imu_write_byte(
     @param addr Register address to read from
     @param data Pointer to data that is read back
     @details A single byte transaction can be treated as a multi-byte
-    transaction with a length of 1 so that's what this function does
+    transaction with a length of 1 so that's what this function does.
+    
+    I know this function COULD just return a single byte but I'd like to keep it
+    consistent with the imu_read_bytes function.
 */
 void imu_read_byte(
     uint8_t addr,

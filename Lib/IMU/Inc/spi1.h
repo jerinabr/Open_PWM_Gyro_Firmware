@@ -27,11 +27,10 @@
     so if the clock polarity is 1, the SCLK line will still be low until the
     interface is enabled.
     
-    This is problematic because if the TX FIFO is written to before the
-    peripheral is enabled, then once it is enabled the clock lines goes high
-    before going back low. This timing can cause unexpected behavior from the
-    SPI device if the chip-select line isn't enabled right after the low-to-high
-    transition.
+    This is problematic because if the TX FIFO is written before the peripheral
+    is enabled, then once it is enabled the clock lines goes high before going
+    back low. This timing can cause unexpected behavior from the SPI device if
+    the chip-select line isn't enabled right after the low-to-high transition.
 */
 #ifndef SPI1_H
 #define SPI1_H

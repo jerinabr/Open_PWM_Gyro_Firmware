@@ -14,17 +14,18 @@ extern "C" {
 -- DEFINITIONS --
 ***********************************************************************/
 
-/*
-    Registers
-*/
-#define WHO_AM_I_REG    0x75
+/* Registers */
+#define WHO_AM_I_REG        0x75
+#define DEVICE_CONFIG_REG   0x17
 
 /***********************************************************************
 -- FUNCTIONS --
 ***********************************************************************/
 
+/* Initialize the ICM-42605 IMU */
 int imu_init(void);
 
+/* Single byte register write */
 void imu_write_byte(
     uint8_t addr,
     uint8_t data
