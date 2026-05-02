@@ -1,6 +1,15 @@
 /*!
     @file   imu.h
     @brief  Initialize and read the IMU (ICM-42605) when data is available
+
+    The IMU is configured in Stream-to-FIFO mode so that way all the sensor data
+    can be read from a single register instead of needing to do twelve separate
+    SPI transactions.
+
+    The INT1 pin is connected to PB0 on the MCU, and it will pulse active-low
+    when the FIFO has more than 1 packet in it. This will keep the SPI interface
+    idle until the interrupt occurs. Once the interrupt occurs, the FIFO count
+    register is read to determine how many packets to read from the FIFO.
 */
 #ifndef IMU_H
 #define IMU_H
@@ -40,6 +49,7 @@ extern "C" {
 #define DEVICE_CONFIG_MASK      0x11
 #define DRIVE_CONFIG_MASK       0x3F
 #define INT_CONFIG_MASK         0x3F
+#define PWR_MGMT0_MASK          0x3F
 #define FIFO_CONFIG_MASK        0xC0
 #define FIFO_CONFIG1_MASK       0x6F
 #define FIFO_CONFIG2_MASK       0xFF
@@ -79,8 +89,12 @@ extern "C" {
 -- FUNCTIONS --
 ***********************************************************************/
 
-/* Initialize the ICM-42605 IMU */
+/* Initialize the ICM-42605 IMU without enabling it */
 int imu_init(void);
+
+/* Enable or disable the ICM-42605 gyro and accelerometer */
+int imu_enable(void);
+int imu_disable(void);
 
 /* Single byte register write */
 void imu_write_byte(

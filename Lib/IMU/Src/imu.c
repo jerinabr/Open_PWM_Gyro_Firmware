@@ -20,16 +20,19 @@
 #define WHO_AM_I_VAL 0x42
 
 /* Register configurations */
-#define SOFT_RESET              0x1
+#define SOFT_RESET              0x01
 #define RESET_DONE_MASK         0x10
-#define SLEW_RATE_4ns_12ns      0x3
-#define INT1_DRIVE_PUSH_PULL    (0x1 << 1)
-#define STREAM_TO_FIFO_MODE     (0x1 << 6)
-#define SEND_ALL_DATA_TO_FIFO   0x7
-#define FIFO_WM_LSB             0x1
-#define THS_INT_CLEAR_ON_READ   (0x2 << 2)
-#define DEASSERT_INT_RESET      0x0
-#define INT1_SRC_FIFO_THS       (0x1 << 2)
+#define SLEW_RATE_4ns_12ns      0x03
+#define INT1_DRIVE_PUSH_PULL    (0x01 << 1)
+#define STREAM_TO_FIFO_MODE     (0x01 << 6)
+#define FLUSH_FIFO              (0x01 << 1)
+#define SEND_ALL_DATA_TO_FIFO   0x07
+#define FIFO_WM_LSB             0x01
+#define THS_INT_CLEAR_ON_READ   (0x02 << 2)
+#define DEASSERT_INT_RESET      0x00
+#define INT1_SRC_FIFO_THS       (0x01 << 2)
+#define GYRO_ACCEL_LN_MODE      0x0F
+#define GYRO_ACCEL_OFF          0x00
 
 /***********************************************************************
 -- PRIVATE FUNCTIONS --
@@ -79,7 +82,7 @@ static inline void imu_read(
     @return EXIT_SUCCESS if the data read matches the data written, EXIT_FAILURE
     otherwise
 */
-static uint8_t imu_write_verify(uint8_t addr, uint8_t data, uint8_t rd_mask) {
+static int imu_write_verify(uint8_t addr, uint8_t data, uint8_t rd_mask) {
     imu_write_byte(addr, data);
     uint8_t read_byte;
     imu_read_byte(addr, &read_byte);
@@ -91,6 +94,8 @@ static uint8_t imu_write_verify(uint8_t addr, uint8_t data, uint8_t rd_mask) {
 
 /*!
     @brief Configure the IMU registers
+    @return EXIT_SUCCESS if the IMU configured successfully, EXIT_FAILURE
+    otherwise
 */
 static int imu_config(void) {
     uint8_t wr_valid;
@@ -140,6 +145,9 @@ static int imu_config(void) {
     if (wr_valid != EXIT_SUCCESS) {
         return 3;
     }
+
+    /* Flush the FIFO in case there's any data in it */
+    imu_write_byte(SIGNAL_PATH_RESET_REG, FLUSH_FIFO);
 
     /* Send accel, gyro, temp, and timestamp data to FIFO */
     wr_valid = imu_write_verify(
@@ -200,7 +208,7 @@ static int imu_config(void) {
 
 /*!
     @brief Initialize the IMU
-    @returns EXIT_SUCCESS if IMU initialized, otherwise EXIT_FAILURE
+    @return EXIT_SUCCESS if IMU initialized, otherwise EXIT_FAILURE
 */
 int imu_init(void) {
     spi1_init(SPI_CPOL, SPI_CPHA, SPI_BR_10MHz);
@@ -214,6 +222,34 @@ int imu_init(void) {
 
     /* Configure the IMU */
     return imu_config();
+}
+
+/*!
+    @brief Turn on the gyro and accelerometer in low noise mode
+    @return EXIT_SUCCESS if the IMU was enabled, EXIT_FAILURE otherwise
+*/
+int imu_enable(void) {
+    /* Flush the FIFO */
+    imu_write_byte(SIGNAL_PATH_RESET_REG, FLUSH_FIFO);
+
+    /* Place gyro and accelerometer in low noise mode */
+    return imu_write_verify(
+        PWR_MGMT0_REG,
+        GYRO_ACCEL_LN_MODE,
+        PWR_MGMT0_MASK
+    );
+}
+
+/*!
+    @brief Turn off the gyro and accelerometer
+    @return EXIT_SUCCESS if the IMU was disable, EXIT_FAILURE otherwise
+*/
+int imu_disable(void) {
+    return imu_write_verify(
+        PWR_MGMT0_REG,
+        GYRO_ACCEL_OFF,
+        PWR_MGMT0_MASK
+    );
 }
 
 /*!
