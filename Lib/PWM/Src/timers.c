@@ -1,24 +1,9 @@
 #include "timers.h"
 #include "stm32g431xx.h"
 #include "stm32g4xx.h"
+#include "hw_config.h"
 #include <stdint.h>
 
-/*
-    GPIO configuration defines
-*/
-#define GPIO_PA0_AF1_TIM2_CH1   (0x1UL << GPIO_AFRL_AFSEL0_Pos)
-#define GPIO_PA1_AF1_TIM2_CH2   (0x1UL << GPIO_AFRL_AFSEL1_Pos)
-#define GPIO_PA2_AF1_TIM2_CH3   (0x1UL << GPIO_AFRL_AFSEL2_Pos)
-#define GPIO_PA3_AF1_TIM2_CH4   (0x1UL << GPIO_AFRL_AFSEL3_Pos)
-#define GPIO_PB6_AF2_TIM4_CH1   (0x2UL << GPIO_AFRL_AFSEL6_Pos)
-#define GPIO_PB7_AF2_TIM4_CH2   (0x2UL << GPIO_AFRL_AFSEL7_Pos)
-
-#define GPIO_PA0_AF_MODE        (0x2UL << GPIO_MODER_MODE0_Pos)
-#define GPIO_PA1_AF_MODE        (0x2UL << GPIO_MODER_MODE1_Pos)
-#define GPIO_PA2_AF_MODE        (0x2UL << GPIO_MODER_MODE2_Pos)
-#define GPIO_PA3_AF_MODE        (0x2UL << GPIO_MODER_MODE3_Pos)
-#define GPIO_PB6_AF_MODE        (0x2UL << GPIO_MODER_MODE6_Pos)
-#define GPIO_PB7_AF_MODE        (0x2UL << GPIO_MODER_MODE7_Pos)
 /*
     Timer defines
 */
@@ -45,10 +30,10 @@ static void configure_pins(void) {
     // Set alternate function for PA0-PA3 as timer 2 output pins
     SET_BIT(
         GPIOA->AFR[0],
-        GPIO_PA0_AF1_TIM2_CH1 |
-        GPIO_PA1_AF1_TIM2_CH2 |
-        GPIO_PA2_AF1_TIM2_CH3 |
-        GPIO_PA3_AF1_TIM2_CH4
+        GPIO_PA0_AF_TIM2_CH1 |
+        GPIO_PA1_AF_TIM2_CH2 |
+        GPIO_PA2_AF_TIM2_CH3 |
+        GPIO_PA3_AF_TIM2_CH4
     );
     // Set PA0-PA3 into alternate function mode
     MODIFY_REG(
@@ -69,8 +54,8 @@ static void configure_pins(void) {
     // Set alternate function for PB6 and PB7 as timer 4 output pins
     SET_BIT(
         GPIOB->AFR[0],
-        GPIO_PB6_AF2_TIM4_CH1 |
-        GPIO_PB7_AF2_TIM4_CH2
+        GPIO_PB6_AF_TIM4_CH1 |
+        GPIO_PB7_AF_TIM4_CH2
     );
     // Set PB6 and PB7 into alternate function mode
     MODIFY_REG(

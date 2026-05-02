@@ -50,6 +50,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     "Lib/SysTick/Src/systick.c"
     # IMU library
     "Lib/IMU/Src/imu.c"
+    "Lib/IMU/Src/imu_exti.c"
     "Lib/IMU/Src/spi1.c"
     # PWM library
     "Lib/PWM/Src/pwm.c"

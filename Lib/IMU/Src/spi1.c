@@ -7,18 +7,6 @@
 /*
     GPIO configuration
 */
-#define GPIO_PA5_AF5_SPI1_SCK   (0x5UL << GPIO_AFRL_AFSEL5_Pos)
-#define GPIO_PA6_AF5_SPI1_MISO  (0x5UL << GPIO_AFRL_AFSEL6_Pos)
-#define GPIO_PA7_AF5_SPI1_MOSI  (0x5UL << GPIO_AFRL_AFSEL7_Pos)
-
-#define GPIO_PA4_GPO_MODE       (0x1UL << GPIO_MODER_MODE4_Pos)
-#define GPIO_PA5_AF_MODE        (0x2UL << GPIO_MODER_MODE5_Pos)
-#define GPIO_PA6_AF_MODE        (0x2UL << GPIO_MODER_MODE6_Pos)
-#define GPIO_PA7_AF_MODE        (0x2UL << GPIO_MODER_MODE7_Pos)
-
-#define GPIO_PA5_OSPEEDR_MS     (0x1UL << GPIO_OSPEEDR_OSPEED5_Pos)
-#define GPIO_PA7_OSPEEDR_MS     (0x1UL << GPIO_OSPEEDR_OSPEED7_Pos)
-
 #define SPI_NSS_ENABLE          GPIO_BSRR_BR4
 #define SPI_NSS_DISABLE         GPIO_BSRR_BS4
 /*
@@ -51,9 +39,9 @@ static void configure_pins(void) {
     /* Set alternate function for PA5-PA7 as SPI1 pins */
     SET_BIT(
         GPIOA->AFR[0],
-        GPIO_PA5_AF5_SPI1_SCK |
-        GPIO_PA6_AF5_SPI1_MISO |
-        GPIO_PA7_AF5_SPI1_MOSI
+        GPIO_PA5_AF_SPI1_SCK |
+        GPIO_PA6_AF_SPI1_MISO |
+        GPIO_PA7_AF_SPI1_MOSI
     );
 
     /* Set SCK, MOSI, and MISO pins in alternate function mode and the chip

@@ -1,14 +1,9 @@
 #include "usart1.h"
 #include "stm32g431xx.h"
 #include "stm32g4xx.h"
+#include "hw_config.h"
 #include <math.h>
 #include <stdint.h>
-
-#define GPIO_PA9_AF7_USART1     (0x7UL << GPIO_AFRH_AFSEL9_Pos)
-#define GPIO_PA9_AF_MODE        (0x2UL << GPIO_MODER_MODE9_Pos)
-
-#define GPIO_PA10_AF7_USART1    (0x7UL << GPIO_AFRH_AFSEL10_Pos)
-#define GPIO_PA10_AF_MODE       (0x2UL << GPIO_MODER_MODE10_Pos)
 
 // Prescaler=1 so USART1 clock = APB2 clock
 #define USART1_KER_CK_PRES      (160E6f)
@@ -56,7 +51,8 @@ static void configure_pins(void) {
     // Set alternate function for PA9 and PA10 as USART1 pins
     SET_BIT(
         GPIOA->AFR[1],
-        GPIO_PA9_AF7_USART1 | GPIO_PA10_AF7_USART1
+        GPIO_PA9_AF_USART1_TX |
+        GPIO_PA10_AF_USART1_RX
     );
     // Set PA9 and PA10 into alternate function mode
     MODIFY_REG(
