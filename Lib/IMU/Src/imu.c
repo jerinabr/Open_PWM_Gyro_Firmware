@@ -19,6 +19,18 @@
 /* Expected WHO_AM_I register value for ICM-42605 */
 #define WHO_AM_I_VAL 0x42
 
+/* Register configurations */
+#define SOFT_RESET              0x1
+#define RESET_DONE_MASK         0x10
+#define SLEW_RATE_4ns_12ns      0x3
+#define INT1_DRIVE_PUSH_PULL    (0x1 << 1)
+#define STREAM_TO_FIFO_MODE     (0x1 << 6)
+#define SEND_ALL_DATA_TO_FIFO   0x7
+#define FIFO_WM_LSB             0x1
+#define THS_INT_CLEAR_ON_READ   (0x2 << 2)
+#define DEASSERT_INT_RESET      0x0
+#define INT1_SRC_FIFO_THS       (0x1 << 2)
+
 /***********************************************************************
 -- PRIVATE FUNCTIONS --
 ***********************************************************************/
@@ -48,14 +60,138 @@ static inline void imu_read(
         rx_buf,
         transaction_len
     );
-
     /*
-        Ignore the first received byte because it's received when the address
-        byte is sent
+        Copy every received byte except the first one because it's garbage data
+        that's sent when back when the address is written
     */
     for (int i = 0; i < num_bytes; i++) {
         data[i] = rx_buf[i + 1];
     }
+}
+
+/*!
+    @brief Write then read back an IMU register to verify it was written
+    correctly
+    @param addr Register address
+    @param data Data to be written
+    @param rd_mask Bitmask for the register read (to be used when register bits
+    are reserved)
+    @return EXIT_SUCCESS if the data read matches the data written, EXIT_FAILURE
+    otherwise
+*/
+static uint8_t imu_write_verify(uint8_t addr, uint8_t data, uint8_t rd_mask) {
+    imu_write_byte(addr, data);
+    uint8_t read_byte;
+    imu_read_byte(addr, &read_byte);
+    if ((read_byte & rd_mask) != data) {
+        return EXIT_FAILURE;
+    }
+    return EXIT_SUCCESS;
+}
+
+/*!
+    @brief Configure the IMU registers
+*/
+static int imu_config(void) {
+    uint8_t wr_valid;
+    uint8_t rd_data;
+
+    /* Soft reset the IMU */
+    imu_write_byte(DEVICE_CONFIG_REG, SOFT_RESET);
+
+    /*
+        Datasheet says to wait 1 ms for soft reset to be effective, but we'll
+        wait 2 ms to be EXTRA sure
+    */
+    delay_ms(2);
+
+    /* Verify software reset completed */
+    imu_read_byte(INT_STATUS_REG, &rd_data);
+    if (!(rd_data & RESET_DONE_MASK)) {
+        return rd_data;
+    }
+
+    /* Set SPI output slew rate to 4ns - 12ns */
+    wr_valid = imu_write_verify(
+        DRIVE_CONFIG_REG,
+        SLEW_RATE_4ns_12ns,
+        DRIVE_CONFIG_MASK
+    );
+    if (wr_valid != EXIT_SUCCESS) {
+        return 1;
+    }
+
+    /* Set INT1 output driver to be push-pull */
+    wr_valid = imu_write_verify(
+        INT_CONFIG_REG,
+        INT1_DRIVE_PUSH_PULL,
+        INT_CONFIG_MASK
+    );
+    if (wr_valid != EXIT_SUCCESS) {
+        return 2;
+    }
+    
+    /* Enable Stream-to-FIFO mode */
+    wr_valid = imu_write_verify(
+        FIFO_CONFIG_REG,
+        STREAM_TO_FIFO_MODE,
+        FIFO_CONFIG_MASK
+    );
+    if (wr_valid != EXIT_SUCCESS) {
+        return 3;
+    }
+
+    /* Send accel, gyro, temp, and timestamp data to FIFO */
+    wr_valid = imu_write_verify(
+        FIFO_CONFIG1_REG,
+        SEND_ALL_DATA_TO_FIFO,
+        FIFO_CONFIG1_MASK
+    );
+    if (wr_valid != EXIT_SUCCESS) {
+        return 4;
+    }
+
+    /* Set FIFO interrupt threshold to 1 packet */
+    wr_valid = imu_write_verify(
+        FIFO_CONFIG2_REG,
+        FIFO_WM_LSB,
+        FIFO_CONFIG2_MASK
+    );
+    if (wr_valid != EXIT_SUCCESS) {
+        return 5;
+    }
+
+    /* Clear FIFO threshold interrupt when the FIFO is read */
+    wr_valid = imu_write_verify(
+        INT_CONFIG0_REG,
+        THS_INT_CLEAR_ON_READ,
+        INT_CONFIG0_MASK
+    );
+    if (wr_valid != EXIT_SUCCESS) {
+        return 6;
+    }
+
+    /* Deassert async reset for the interrupt */
+    wr_valid = imu_write_verify(
+        INT_CONFIG1_REG,
+        DEASSERT_INT_RESET,
+        INT_CONFIG1_MASK
+    );
+    if (wr_valid != EXIT_SUCCESS) {
+        return 7;
+    }
+
+    /* Set FIFO threshold as the interrupt source for INT1 */
+    wr_valid = imu_write_verify(
+        INT_SOURCE0_REG,
+        INT1_SRC_FIFO_THS,
+        INT_SOURCE0_MASK
+    );
+    if (wr_valid != EXIT_SUCCESS) {
+        return 8;
+    }
+
+    return EXIT_SUCCESS;
 }
 
 /***********************************************************************
@@ -75,13 +211,9 @@ int imu_init(void) {
     if (reg_data != WHO_AM_I_VAL) {
         return EXIT_FAILURE;
     }
-    return EXIT_SUCCESS;
 
-    /* Soft reset the IMU */
-    imu_write_byte(DEVICE_CONFIG_REG, 0x1);
-
-    /* Wait 1 ms before attempting any register access */
-    delay_ms(1);
+    /* Configure the IMU */
+    return imu_config();
 }
 
 /*!
@@ -109,7 +241,7 @@ void imu_write_byte(
     @details A single byte transaction can be treated as a multi-byte
     transaction with a length of 1 so that's what this function does.
     
-    I know this function COULD just return a single byte but I'd like to keep it
+    I know this function COULD just return a single byte but I wanted to keep it
     consistent with the imu_read_bytes function.
 */
 void imu_read_byte(
