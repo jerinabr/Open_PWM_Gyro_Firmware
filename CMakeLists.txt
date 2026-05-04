@@ -52,6 +52,8 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     "Lib/IMU/Src/imu.c"
     "Lib/IMU/Src/imu_exti.c"
     "Lib/IMU/Src/spi1.c"
+    # LED library
+    "Lib/LED/Src/led.c"
     # PWM library
     "Lib/PWM/Src/pwm.c"
     "Lib/PWM/Src/timers.c"
@@ -68,6 +70,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     "Lib/App/Inc"
     "Lib/SysTick/Inc"
     "Lib/IMU/Inc"
+    "Lib/LED/Inc"
     "Lib/PWM/Inc"
     "Lib/Receiver/Inc"
 )

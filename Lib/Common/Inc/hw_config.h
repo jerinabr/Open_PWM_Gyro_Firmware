@@ -55,6 +55,11 @@ extern "C" {
 #define GPIO_PB6_AF_MODE        (0x2UL << GPIO_MODER_MODE6_Pos)
 #define GPIO_PB7_AF_MODE        (0x2UL << GPIO_MODER_MODE7_Pos)
 
+/* Red Status LED */
+#define GPIO_PB5_GPO_MODE       (0x1UL << GPIO_MODER_MODE5_Pos)
+#define GPIO_PB5_BR             (0x1UL << GPIO_BSRR_BR5_Pos)
+#define GPIO_PB5_BS             (0x1UL << GPIO_BSRR_BS5_Pos)
+
 /*
     DMA Configuration
 

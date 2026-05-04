@@ -1,17 +1,14 @@
 #include "app.h"
-#include "receiver.h"
-#include "pwm.h"
 #include "imu.h"
+#include "led.h"
+#include "receiver.h"
+#include "systick.h"
+#include "pwm.h"
 #include "stm32g431xx.h"
 #include "stm32g4xx.h"
-#include "stm32g4xx_hal.h"
-#include "stm32g4xx_hal_gpio.h"
 #include "usbd_cdc_if.h"
 #include <stdint.h>
 #include <stdio.h>
-
-#define LED_RED_PORT    GPIOB
-#define LED_RED_PIN     GPIO_PIN_5
 
 /* FOR DEBUG */
 uint32_t t0 = 0;
@@ -59,18 +56,17 @@ static void enable_peripheral_clocks(void) {
 */
 void app_config(void) {
     enable_peripheral_clocks();
-    receiver_init(IBUS);
+    led_init();
     pwm_init();
-    HAL_Delay(5000);
+    receiver_init(IBUS);
     uint8_t imu_status = imu_init();
     
     /* FOR DEBUG */
-    /* Initialize the LED off (LED is active low) */
-    HAL_GPIO_WritePin(LED_RED_PORT, LED_RED_PIN, GPIO_PIN_SET);
-    t0 = HAL_GetTick();
+    t0 = get_ms();
 
     while (1) {
-        HAL_Delay(2000);
+        delay_ms(2000);
+        led_on();
         uint8_t reg_data;
         imu_read_byte(WHO_AM_I_REG, &reg_data);
         uint8_t tx_buf[64];
@@ -121,7 +117,7 @@ void app_loop(void) {
         This helps us tell if the device browns out because the LED would shut
         off when the device starts up
     */
-    if (HAL_GetTick() - t0 > 1000) {
-        HAL_GPIO_WritePin(LED_RED_PORT, LED_RED_PIN, GPIO_PIN_RESET);
+    if (get_ms() - t0 > 1000) {
+        led_on();
     }
 }
