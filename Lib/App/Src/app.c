@@ -39,8 +39,10 @@ static void enable_peripheral_clocks(void) {
     SET_BIT(RCC->APB1ENR1, APB1ENR1_Mask);
     while (!READ_BIT(RCC->APB1ENR1, APB1ENR1_Mask));
     
-    /* Enable clock for USART1 and SPI1 */
-    uint32_t APB2ENR_Mask = RCC_APB2ENR_USART1EN | RCC_APB2ENR_SPI1EN;
+    /* Enable clock for USART1, SPI1, and SYSCFG */
+    uint32_t APB2ENR_Mask = RCC_APB2ENR_USART1EN |
+                            RCC_APB2ENR_SPI1EN |
+                            RCC_APB2ENR_SYSCFGEN;
     SET_BIT(RCC->APB2ENR, APB2ENR_Mask);
     while (!READ_BIT(RCC->APB2ENR, APB2ENR_Mask));
 }

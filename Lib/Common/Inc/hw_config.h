@@ -99,6 +99,10 @@ extern "C" {
 #define USART1_RX_DMA_IRQn          DMA1_Channel3_IRQn
 #define USART1_RX_DMA_IRQ_PRIORITY  15 /* Lowest priority */
 
+#define IMU_INT1_IRQ                EXTI0_IRQHandler
+#define IMU_INT1_IRQn               EXTI0_IRQn
+#define IMU_INT1_IRQ_PRIORITY       15 /* Lowest priority */
+
 #ifdef __cplusplus
 }
 #endif

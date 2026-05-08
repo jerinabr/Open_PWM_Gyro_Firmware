@@ -155,16 +155,10 @@ void spi1_init(uint8_t polarity, uint8_t phase, uint8_t baud_rate) {
     configure_spi1(polarity, phase, baud_rate);
     configure_dma();
     
-    NVIC_SetPriority(
-        SPI1_TX_DMA_IRQn,
-        SPI1_TX_DMA_IRQ_PRIORITY)
-    ;
+    NVIC_SetPriority(SPI1_TX_DMA_IRQn, SPI1_TX_DMA_IRQ_PRIORITY);
     NVIC_EnableIRQ(SPI1_TX_DMA_IRQn);
 
-    NVIC_SetPriority(
-        SPI1_RX_DMA_IRQn,
-        SPI1_RX_DMA_IRQ_PRIORITY
-    );
+    NVIC_SetPriority(SPI1_RX_DMA_IRQn, SPI1_RX_DMA_IRQ_PRIORITY);
     NVIC_EnableIRQ(SPI1_RX_DMA_IRQn);
 }
 
