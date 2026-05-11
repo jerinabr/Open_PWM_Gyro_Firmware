@@ -4,7 +4,7 @@
 #include "stm32g4xx.h"
 #include <stdint.h>
 
-static uint8_t int1_flag = 0;
+static volatile uint8_t int1_flag = 0;
 
 /***********************************************************************
 -- PUBLIC FUNCTIONS --
@@ -37,15 +37,18 @@ void imu_exti_init(void) {
 }
 
 /*!
-    @brief Indicate if IMU INT1 is active and clear it if it was
+    @brief Indicate if IMU INT1 is active
     @return 1 if the interrupt is active, 0 otherwise
 */
 uint8_t is_int1_active(void) {
-    if (int1_flag) {
-        int1_flag = 0;
-        return 1;
-    }
-    return 0;
+    return int1_flag;
+}
+
+/*!
+    @brief Clear the int1 flag
+*/
+void clear_int1(void) {
+    int1_flag = 0;
 }
 
 /***********************************************************************

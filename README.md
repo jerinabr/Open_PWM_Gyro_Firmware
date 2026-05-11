@@ -32,9 +32,9 @@ This is for two main reasons:
 
 ## Hardware Interfaces
 
-- [ ] Create IMU library
-  - [ ] Create SPI driver
-  - [ ] Create ICM-42605 wrapper
+- [x] Create IMU library
+  - [x] Create SPI driver
+  - [x] Create ICM-42605 wrapper
 - [X] Create PWM library for channels
   - [X] Create timer driver
   - [X] Create PWM wrapper

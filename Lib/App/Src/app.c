@@ -9,9 +9,13 @@
 #include "usbd_cdc_if.h"
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 /* FOR DEBUG */
 uint32_t t0 = 0;
+
+/* IMU data structure */
+struct IMU_Data imu_data;
 
 /***********************************************************************
 -- PRIVATE FUNCTIONS --
@@ -58,27 +62,26 @@ static void enable_peripheral_clocks(void) {
 */
 void app_config(void) {
     enable_peripheral_clocks();
+
+    /* Initialize peripherals */
     led_init();
     pwm_init();
     receiver_init(IBUS);
+
+    /* Try to initialize the IMU */
     uint8_t imu_status = imu_init();
+    if (imu_status != EXIT_SUCCESS) {
+        while (1) {
+            delay_ms(125);
+            led_toggle();
+        }
+    }
+
+    /* Enable the IMU */
+    imu_enable();
     
     /* FOR DEBUG */
     t0 = get_ms();
-
-    while (1) {
-        delay_ms(2000);
-        led_on();
-        uint8_t reg_data;
-        imu_read_byte(WHO_AM_I_REG, &reg_data);
-        uint8_t tx_buf[64];
-        uint8_t tx_buf_len = snprintf(
-            (char*) tx_buf, 64,
-            "WHO_AM_I: %u\r\n",
-            reg_data
-        );
-        CDC_Transmit_FS(tx_buf, tx_buf_len);
-    }
 }
 
 /*!
@@ -88,6 +91,20 @@ void app_config(void) {
 void app_loop(void) {
     /* Process peripheral data */
     process_receiver();
+
+    /* Read IMU */
+    uint8_t imu_data_valid = read_imu_data(&imu_data);
+    if (imu_data_valid) {
+        uint8_t tx_buf[256];
+        uint8_t tx_buf_len = snprintf(
+            (char*) tx_buf, 256,
+            "%hd,%hd,%hd,%hd,%hd,%hd,%hu\r\n",
+            imu_data.ax, imu_data.ay, imu_data.az,
+            imu_data.gx, imu_data.gy, imu_data.gz,
+            imu_data.ts_delta
+        );
+        CDC_Transmit_FS(tx_buf, tx_buf_len);
+    }
 
     /* FOR DEBUG */
     if (rx.channel_data_valid) {

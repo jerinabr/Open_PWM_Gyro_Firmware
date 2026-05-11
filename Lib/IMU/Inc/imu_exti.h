@@ -23,8 +23,9 @@ extern "C" {
 /* Enable the EXTI interrupt for the IMU INT1 pin */
 void imu_exti_init(void);
 
-/* Get and clear the IMU interrupt status */
+/* Get/clear the IMU interrupt status */
 uint8_t is_int1_active(void);
+void clear_int1(void);
 
 #ifdef __cplusplus
 }

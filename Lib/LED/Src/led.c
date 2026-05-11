@@ -4,6 +4,8 @@
 #include "stm32g4xx.h"
 #include <stdint.h>
 
+static uint8_t led_status = 0;
+
 /***********************************************************************
 -- PUBLIC FUNCTIONS --
 ***********************************************************************/
@@ -28,6 +30,7 @@ void led_init(void) {
 */
 void led_on(void) {
     SET_BIT(GPIOB->BSRR, GPIO_PB5_BR);
+    led_status = 1;
 }
 
 /*!
@@ -35,4 +38,17 @@ void led_on(void) {
 */
 void led_off(void) {
     SET_BIT(GPIOB->BSRR, GPIO_PB5_BS);
+    led_status = 0;
+}
+
+/*!
+    @brief Toggle the LED
+*/
+void led_toggle(void) {
+    if (led_status) {
+        led_off();
+    }
+    else {
+        led_on();
+    }
 }

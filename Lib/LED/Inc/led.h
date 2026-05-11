@@ -17,6 +17,7 @@ void led_init(void);
 /* LED on/off */
 void led_on(void);
 void led_off(void);
+void led_toggle(void);
 
 #ifdef __cplusplus
 }

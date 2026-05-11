@@ -1,4 +1,5 @@
 #include "imu.h"
+#include "imu_exti.h"
 #include "spi1.h"
 #include "systick.h"
 #include <stdint.h>
@@ -13,11 +14,11 @@
 /* Read operation is signified by bit 7 of the address byte being set */
 #define READ_OP 0x80
 
-/* IMU data FIFO is 16 bytes per packet */
-#define FIFO_READ_LEN 16
-
 /* Expected WHO_AM_I register value for ICM-42605 */
 #define WHO_AM_I_VAL 0x42
+
+/* IMU FIFO packet size in bytes */
+#define IMU_FIFO_PACKET_LEN 16
 
 /* Register configurations */
 #define SOFT_RESET              0x01
@@ -26,6 +27,7 @@
 #define INT1_DRIVE_PUSH_PULL    (0x01 << 1)
 #define STREAM_TO_FIFO_MODE     (0x01 << 6)
 #define FLUSH_FIFO              (0x01 << 1)
+#define TMST_DELTA_EN           0x25
 #define SEND_ALL_DATA_TO_FIFO   0x07
 #define FIFO_WM_LSB             0x01
 #define THS_INT_CLEAR_ON_READ   (0x02 << 2)
@@ -100,9 +102,10 @@ static int imu_write_verify(uint8_t addr, uint8_t data, uint8_t rd_mask) {
 static int imu_config(void) {
     uint8_t wr_valid;
     uint8_t rd_data;
+    uint8_t config_step = 0;
 
     /* Soft reset the IMU */
-    imu_write_byte(DEVICE_CONFIG_REG, SOFT_RESET);
+    imu_write_byte(IMU_REG_DEVICE_CONFIG, SOFT_RESET);
 
     /*
         Datasheet says to wait 1 ms for soft reset to be effective, but we'll
@@ -111,92 +114,102 @@ static int imu_config(void) {
     delay_ms(2);
 
     /* Verify software reset completed */
-    imu_read_byte(INT_STATUS_REG, &rd_data);
+    config_step++;
+    imu_read_byte(IMU_REG_INT_STATUS, &rd_data);
     if (!(rd_data & RESET_DONE_MASK)) {
-        return rd_data;
+        return config_step;
     }
 
     /* Set SPI output slew rate to 4ns - 12ns */
+    config_step++;
     wr_valid = imu_write_verify(
-        DRIVE_CONFIG_REG,
+        IMU_REG_DRIVE_CONFIG,
         SLEW_RATE_4ns_12ns,
-        DRIVE_CONFIG_MASK
+        IMU_MASK_DRIVE_CONFIG
     );
     if (wr_valid != EXIT_SUCCESS) {
-        return 1;
+        return config_step;
     }
 
     /* Set INT1 output driver to be push-pull */
+    config_step++;
     wr_valid = imu_write_verify(
-        INT_CONFIG_REG,
+        IMU_REG_INT_CONFIG,
         INT1_DRIVE_PUSH_PULL,
-        INT_CONFIG_MASK
+        IMU_MASK_INT_CONFIG
     );
     if (wr_valid != EXIT_SUCCESS) {
-        return 2;
+        return config_step;
     }
     
     /* Enable Stream-to-FIFO mode */
+    config_step++;
     wr_valid = imu_write_verify(
-        FIFO_CONFIG_REG,
+        IMU_REG_FIFO_CONFIG,
         STREAM_TO_FIFO_MODE,
-        FIFO_CONFIG_MASK
+        IMU_MASK_FIFO_CONFIG
     );
     if (wr_valid != EXIT_SUCCESS) {
-        return 3;
+        return config_step;
     }
 
     /* Flush the FIFO in case there's any data in it */
-    imu_write_byte(SIGNAL_PATH_RESET_REG, FLUSH_FIFO);
+    config_step++;
+    imu_write_byte(IMU_REG_SIGNAL_PATH_RESET, FLUSH_FIFO);
 
-    /* Send accel, gyro, temp, and timestamp data to FIFO */
+    /* Set timestamp in the FIFO to be a delta instead of absolute */
+    config_step++;
     wr_valid = imu_write_verify(
-        FIFO_CONFIG1_REG,
-        SEND_ALL_DATA_TO_FIFO,
-        FIFO_CONFIG1_MASK
+        IMU_REG_TMST_CONFIG,
+        TMST_DELTA_EN,
+        IMU_MASK_TMST_CONFIG
     );
     if (wr_valid != EXIT_SUCCESS) {
-        return 4;
+        return config_step;
+    }
+
+    /* Send accel, gyro, temp, and timestamp data to FIFO */
+    config_step++;
+    wr_valid = imu_write_verify(
+        IMU_REG_FIFO_CONFIG1,
+        SEND_ALL_DATA_TO_FIFO,
+        IMU_MASK_FIFO_CONFIG1
+    );
+    if (wr_valid != EXIT_SUCCESS) {
+        return config_step;
     }
 
     /* Set FIFO interrupt threshold to 1 packet */
+    config_step++;
     wr_valid = imu_write_verify(
-        FIFO_CONFIG2_REG,
+        IMU_REG_FIFO_CONFIG2,
         FIFO_WM_LSB,
-        FIFO_CONFIG2_MASK
+        IMU_MASK_FIFO_CONFIG2
     );
     if (wr_valid != EXIT_SUCCESS) {
-        return 5;
-    }
-
-    /* Clear FIFO threshold interrupt when the FIFO is read */
-    wr_valid = imu_write_verify(
-        INT_CONFIG0_REG,
-        THS_INT_CLEAR_ON_READ,
-        INT_CONFIG0_MASK
-    );
-    if (wr_valid != EXIT_SUCCESS) {
-        return 6;
-    }
-
-    /* Deassert async reset for the interrupt */
-    wr_valid = imu_write_verify(
-        INT_CONFIG1_REG,
-        DEASSERT_INT_RESET,
-        INT_CONFIG1_MASK
-    );
-    if (wr_valid != EXIT_SUCCESS) {
-        return 7;
+        return config_step;
     }
 
     /* Set FIFO threshold as the interrupt source for INT1 */
+    config_step++;
     wr_valid = imu_write_verify(
-        INT_SOURCE0_REG,
+        IMU_REG_INT_SOURCE0,
         INT1_SRC_FIFO_THS,
-        INT_SOURCE0_MASK
+        IMU_MASK_INT_SOURCE0
     );
     if (wr_valid != EXIT_SUCCESS) {
-        return 8;
+        return config_step;
+    }
+
+    /* Deassert async reset for the interrupt */
+    config_step++;
+    wr_valid = imu_write_verify(
+        IMU_REG_INT_CONFIG1,
+        DEASSERT_INT_RESET,
+        IMU_MASK_INT_CONFIG1
+    );
+    if (wr_valid != EXIT_SUCCESS) {
+        return config_step;
     }
 
     return EXIT_SUCCESS;
@@ -215,13 +228,21 @@ int imu_init(void) {
 
     /* Verify SPI communication and sensor identity */
     uint8_t reg_data;
-    imu_read_byte(WHO_AM_I_REG, &reg_data);
+    imu_read_byte(IMU_REG_WHO_AM_I, &reg_data);
     if (reg_data != WHO_AM_I_VAL) {
         return EXIT_FAILURE;
     }
 
     /* Configure the IMU */
-    return imu_config();
+    uint8_t config_status = imu_config();
+    if (config_status != EXIT_SUCCESS) {
+        return config_status;
+    }
+
+    /* Configure the IMU INT1 pin interrupt */
+    imu_exti_init();
+
+    return EXIT_SUCCESS;
 }
 
 /*!
@@ -230,14 +251,22 @@ int imu_init(void) {
 */
 int imu_enable(void) {
     /* Flush the FIFO */
-    imu_write_byte(SIGNAL_PATH_RESET_REG, FLUSH_FIFO);
+    imu_write_byte(IMU_REG_SIGNAL_PATH_RESET, FLUSH_FIFO);
 
     /* Place gyro and accelerometer in low noise mode */
-    return imu_write_verify(
-        PWR_MGMT0_REG,
+    uint8_t wr_valid = imu_write_verify(
+        IMU_REG_PWR_MGMT0,
         GYRO_ACCEL_LN_MODE,
-        PWR_MGMT0_MASK
+        IMU_MASK_PWR_MGMT0
     );
+    if (wr_valid != EXIT_SUCCESS) {
+        return EXIT_FAILURE;
+    }
+
+    /* CLear the INT1 flag if it's active */
+    clear_int1();
+
+    return EXIT_SUCCESS;
 }
 
 /*!
@@ -246,9 +275,9 @@ int imu_enable(void) {
 */
 int imu_disable(void) {
     return imu_write_verify(
-        PWR_MGMT0_REG,
+        IMU_REG_PWR_MGMT0,
         GYRO_ACCEL_OFF,
-        PWR_MGMT0_MASK
+        IMU_MASK_PWR_MGMT0
     );
 }
 
@@ -299,4 +328,78 @@ void imu_read_bytes(
     uint32_t num_bytes
 ) {
     imu_read(addr, data, num_bytes);
+}
+
+/*!
+    @brief Read sensor data from the IMU if it's available
+    @param imu_data pointer to an IMU_Data struct that will be modified if data
+    is available
+    @return 1 if the data is valid. 0 if not.
+    @details The INT1 flag indicates that data is available in the IMU FIFO. The
+    INT_STATUS register is read first to clear the interrupt flags internal to
+    the IMU. The FIFO_COUNTX registers are read to see how many bytes are in
+    the FIFO. Ideally, this should never be more than 16 (1 packet). If for some
+    reason this is greater than 1 packet, then the function will return only the
+    most recent packet with a modified timestamp delta.
+*/
+uint8_t read_imu_data(struct IMU_Data *imu_data) {
+    /* INT1 flag indicates data is available */
+    if (!is_int1_active()) {
+        return 0;
+    }
+
+    clear_int1();
+    
+    /* Read the INT_STATUS register to clear the IMU interrupt */
+    uint8_t int_status;
+    imu_read_byte(IMU_REG_INT_STATUS, &int_status);
+
+    /* Get number of bytes in the FIFO */
+    uint8_t fifo_count_upper;
+    uint8_t fifo_count_lower;
+    imu_read_byte(IMU_REG_FIFO_COUNTH, &fifo_count_upper);
+    imu_read_byte(IMU_REG_FIFO_COUNTL, &fifo_count_lower);
+    uint16_t fifo_count = (fifo_count_upper << 8) | fifo_count_lower;
+    if (fifo_count == 0) {
+        return 0;
+    }
+
+    /* Read all the data in the FIFO */
+    uint8_t fifo_data[fifo_count];
+    imu_read_bytes(
+        IMU_REG_FIFO_DATA,
+        fifo_data,
+        fifo_count
+    );
+
+    /* Only process data from the last FIFO packet */
+    uint8_t last_packet_idx = fifo_count - IMU_FIFO_PACKET_LEN;
+    uint8_t *last_packet = (fifo_data + last_packet_idx);
+
+    /* Calculate the actual timestamp delta based on the number of packets */
+    uint16_t ts_delta = 0;
+    if (fifo_count > IMU_FIFO_PACKET_LEN) {
+        /* Combine timestamp delta from all packets in the FIFO */
+        uint8_t num_packets = fifo_count / IMU_FIFO_PACKET_LEN;
+        for (int i = 0; i < num_packets; i++) {
+            uint8_t start_idx = IMU_FIFO_PACKET_LEN * i;
+            uint16_t ts_delta_upper = fifo_data[start_idx + 14];
+            uint16_t ts_delta_lower = fifo_data[start_idx + 15];
+            ts_delta += (ts_delta_upper << 8) | ts_delta_lower;
+        }
+    } else {
+        /* Use the timestamp delta from the one packet */
+        ts_delta = (last_packet[14] << 8) | last_packet[15];
+    }
+
+    /* Update the IMU_Data struct with the new values */
+    imu_data->ax = (last_packet[1] << 8) | last_packet[2];
+    imu_data->ay = (last_packet[3] << 8) | last_packet[4];
+    imu_data->az = (last_packet[5] << 8) | last_packet[6];
+    imu_data->gx = (last_packet[7] << 8) | last_packet[8];
+    imu_data->gy = (last_packet[9] << 8) | last_packet[10];
+    imu_data->gz = (last_packet[11] << 8) | last_packet[12];
+    imu_data->ts_delta = ts_delta;
+
+    return 1;
 }
