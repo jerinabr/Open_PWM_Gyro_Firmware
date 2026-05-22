@@ -23,6 +23,9 @@
 
     The link to the paper can be found here:
     https://web.enib.fr/~kerhoas/iot/reseau-de-capteurs/carte-imu-mpu9250/documents/INVENSENSE/madgwick_internal_report.pdf
+
+    Floating-point math is used here instead of doubles or fixed point because
+    the STM32G431 has a single-precision FPU.
 */
 void madgwick_imu(
     float beta,
@@ -61,7 +64,7 @@ void madgwick_imu(
     /*
         Compute the objective function and Jacobian
 
-        J_11, J_12, J32, and J_33 are negated during the matrix multiplication
+        J_11, J_13, J32, and J_33 are negated during the matrix multiplication
     */
     f_1 = twoSEq_2 * quat->z - twoSEq_1 * quat->y - ax;
     f_2 = twoSEq_1 * quat->x + twoSEq_3 * quat->z - ay;

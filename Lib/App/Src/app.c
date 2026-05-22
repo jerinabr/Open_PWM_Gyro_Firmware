@@ -13,20 +13,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define MADGWICK_LEARNING_RATE 0.1
+
 /* FOR DEBUG */
 uint32_t t0 = 0;
 
 /* Data structures */
 struct IMU_Data imu_data;
 struct Quaternion quat = {
-    .w = 1.0f,
-    .x = 0.0f,
-    .y = 0.0f,
-    .z = 0.0f
+    .w = 1,
+    .x = 0,
+    .y = 0,
+    .z = 0
 };
-
-const float ACCEL_SCALE = 9.80665 / 2048.0;
-const float GYRO_SCALE = (3.141592653589793 / 180.0) / 16.4;
 
 /***********************************************************************
 -- PRIVATE FUNCTIONS --
@@ -107,13 +106,9 @@ void app_loop(void) {
     uint8_t imu_data_valid = read_imu_data(&imu_data);
     if (imu_data_valid) {
         madgwick_imu(
-            0.1,
-            imu_data.ax * ACCEL_SCALE,
-            imu_data.ay * ACCEL_SCALE,
-            imu_data.az * ACCEL_SCALE,
-            imu_data.gx * GYRO_SCALE,
-            imu_data.gy * GYRO_SCALE,
-            imu_data.gz * GYRO_SCALE,
+            MADGWICK_LEARNING_RATE,
+            imu_data.ax, imu_data.ay, imu_data.az,
+            imu_data.gx, imu_data.gy, imu_data.gz,
             imu_data.ts_delta,
             &quat
         );

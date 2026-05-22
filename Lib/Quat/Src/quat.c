@@ -7,7 +7,7 @@
 */
 void quat_norm(struct Quaternion *quat) {
     /* Calculate quaternion magnitude */
-    float norm = sqrtf(
+    float mag = sqrtf(
         quat->w * quat->w +
         quat->x * quat->x +
         quat->y * quat->y +
@@ -15,8 +15,8 @@ void quat_norm(struct Quaternion *quat) {
     );
 
     /* Normalise */
-    quat->w /= norm;
-    quat->x /= norm;
-    quat->y /= norm;
-    quat->z /= norm;
+    quat->w /= mag;
+    quat->x /= mag;
+    quat->y /= mag;
+    quat->z /= mag;
 }

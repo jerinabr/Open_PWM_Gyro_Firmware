@@ -10,6 +10,9 @@
     when the FIFO has more than 1 packet in it. This will keep the SPI interface
     idle until the interrupt occurs. Once the interrupt occurs, the FIFO count
     register is read to determine how many packets to read from the FIFO.
+
+    The IMU data from the FIFO is always in the range -32768 to 32767. The FSR
+    determines what the LSB is.
 */
 #ifndef IMU_H
 #define IMU_H
@@ -95,12 +98,12 @@ extern "C" {
 ***********************************************************************/
 
 struct IMU_Data {
-    int16_t ax;
-    int16_t ay;
-    int16_t az;
-    int16_t gx;
-    int16_t gy;
-    int16_t gz;
+    float ax;
+    float ay;
+    float az;
+    float gx;
+    float gy;
+    float gz;
     uint16_t ts_delta;
 };
 
