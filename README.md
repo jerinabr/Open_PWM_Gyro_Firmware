@@ -51,7 +51,7 @@ This is for two main reasons:
 
 ## Data Processing
 
-- [ ] Add sensor fusion library/algorithm
+- [x] Add sensor fusion library/algorithm
 - [ ] Implement gyro modes
   - [ ] Implement gyro off
   - [ ] Implement gyro stabilize
