@@ -97,6 +97,11 @@ extern "C" {
 -- IMU DATA STRUCTURE --
 ***********************************************************************/
 
+/*!
+    @brief Accel, Gyro, and timestamp delta from IMU
+    @details acceleration data is in g's and gyroscope data is in deg/s.
+    ts_delta is the number of seconds elapsed since the last sample.
+*/
 struct IMU_Data {
     float ax;
     float ay;
@@ -104,7 +109,7 @@ struct IMU_Data {
     float gx;
     float gy;
     float gz;
-    uint16_t ts_delta;
+    float ts_delta;
 };
 
 /***********************************************************************

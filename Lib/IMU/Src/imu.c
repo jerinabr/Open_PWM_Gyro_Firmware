@@ -40,9 +40,11 @@
     IMU data scaling constants 
     - 16g accel FSR
     - 2000 deg/s gyro FSR
+    - 1 us timestamp resolution
 */
 const float ACCEL_SCALE = 9.80665 / 2048.0;
 const float GYRO_SCALE = (3.141592653589793 / 180.0) / 16.4;
+const float TS_SCALE = 1 / 1e6f;
 
 /***********************************************************************
 -- PRIVATE FUNCTIONS --
@@ -415,7 +417,7 @@ uint8_t read_imu_data(struct IMU_Data *imu_data) {
     imu_data->gx = gx * GYRO_SCALE;
     imu_data->gy = gy * GYRO_SCALE;
     imu_data->gz = gz * GYRO_SCALE;
-    imu_data->ts_delta = ts_delta;
+    imu_data->ts_delta = ts_delta * TS_SCALE;
 
     return 1;
 }

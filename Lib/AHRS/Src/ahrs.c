@@ -12,7 +12,7 @@
     @param gx X component of the gyroscope data (rad/s)
     @param gy Y component of the gyroscope data (rad/s)
     @param gz Z component of the gyroscope data (rad/s)
-    @param t_delta Time delta between last filter update and current one (us)
+    @param t_delta Time since last filter update (seconds)
     @param quat Pointer to struct of the current quaternion representation
     @details This code is the C implementation of Sebastian Madgwick's sensor
     fusion algorithm he introduced in his 2010 paper, "An efficient orientation
@@ -31,7 +31,7 @@ void madgwick_imu(
     float beta,
     float ax, float ay, float az,
     float gx, float gy, float gz,
-    float t_delta,
+    float deltat,
     struct Quaternion *quat
 ) {
     /* Vector norm */
@@ -53,7 +53,6 @@ void madgwick_imu(
     float twoSEq_1 = 2.0f * quat->w;
     float twoSEq_2 = 2.0f * quat->x;
     float twoSEq_3 = 2.0f * quat->y;
-    float deltat = t_delta / 1e6f;
 
     /* Normalise the accelerometer data */
     norm = sqrtf(ax * ax + ay * ay + az * az);
