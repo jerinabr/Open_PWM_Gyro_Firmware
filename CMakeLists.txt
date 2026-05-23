@@ -44,10 +44,10 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
 
 # Add sources to executable
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
+    # AHRS library
+    "Lib/AHRS/Src/ahrs.c"
     # App library
     "Lib/App/Src/app.c"
-    # SysTick library
-    "Lib/SysTick/Src/systick.c"
     # IMU library
     "Lib/IMU/Src/imu.c"
     "Lib/IMU/Src/imu_exti.c"
@@ -57,22 +57,27 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # PWM library
     "Lib/PWM/Src/pwm.c"
     "Lib/PWM/Src/timers.c"
+    # Quaternion library
+    "Lib/Quat/Src/quat.c"
     # Receiver library
     "Lib/Receiver/Src/ibus.c"
     "Lib/Receiver/Src/receiver.c"
     "Lib/Receiver/Src/usart1.c"
+    # SysTick library
+    "Lib/SysTick/Src/systick.c"
 )
 
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
-    # Add user defined include paths
-    "Lib/Common/Inc"
+    "Lib/AHRS/Inc"
     "Lib/App/Inc"
-    "Lib/SysTick/Inc"
+    "Lib/Common/Inc"
     "Lib/IMU/Inc"
     "Lib/LED/Inc"
     "Lib/PWM/Inc"
+    "Lib/Quat/Inc"
     "Lib/Receiver/Inc"
+    "Lib/SysTick/Inc"
 )
 
 # Add project symbols (macros)

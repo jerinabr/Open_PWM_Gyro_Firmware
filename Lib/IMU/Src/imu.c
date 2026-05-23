@@ -36,6 +36,16 @@
 #define GYRO_ACCEL_LN_MODE      0x0F
 #define GYRO_ACCEL_OFF          0x00
 
+/*
+    IMU data scaling constants 
+    - 16g accel FSR
+    - 2000 deg/s gyro FSR
+    - 1 us timestamp resolution
+*/
+const float ACCEL_SCALE = 9.80665 / 2048.0;
+const float GYRO_SCALE = (3.141592653589793 / 180.0) / 16.4;
+const float TS_SCALE = 1 / 1e6f;
+
 /***********************************************************************
 -- PRIVATE FUNCTIONS --
 ***********************************************************************/
@@ -392,14 +402,22 @@ uint8_t read_imu_data(struct IMU_Data *imu_data) {
         ts_delta = (last_packet[14] << 8) | last_packet[15];
     }
 
-    /* Update the IMU_Data struct with the new values */
-    imu_data->ax = (last_packet[1] << 8) | last_packet[2];
-    imu_data->ay = (last_packet[3] << 8) | last_packet[4];
-    imu_data->az = (last_packet[5] << 8) | last_packet[6];
-    imu_data->gx = (last_packet[7] << 8) | last_packet[8];
-    imu_data->gy = (last_packet[9] << 8) | last_packet[10];
-    imu_data->gz = (last_packet[11] << 8) | last_packet[12];
-    imu_data->ts_delta = ts_delta;
+    /* Construct IMU data from the FIFO data */
+    int16_t ax = (last_packet[1] << 8) | last_packet[2];
+    int16_t ay = (last_packet[3] << 8) | last_packet[4];
+    int16_t az = (last_packet[5] << 8) | last_packet[6];
+    int16_t gx = (last_packet[7] << 8) | last_packet[8];
+    int16_t gy = (last_packet[9] << 8) | last_packet[10];
+    int16_t gz = (last_packet[11] << 8) | last_packet[12];
+
+    /* Scale the IMU data and update the IMU data structure */
+    imu_data->ax = ax * ACCEL_SCALE;
+    imu_data->ay = ay * ACCEL_SCALE;
+    imu_data->az = az * ACCEL_SCALE;
+    imu_data->gx = gx * GYRO_SCALE;
+    imu_data->gy = gy * GYRO_SCALE;
+    imu_data->gz = gz * GYRO_SCALE;
+    imu_data->ts_delta = ts_delta * TS_SCALE;
 
     return 1;
 }

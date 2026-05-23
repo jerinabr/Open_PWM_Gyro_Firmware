@@ -1,6 +1,8 @@
+#include "ahrs.h"
 #include "app.h"
 #include "imu.h"
 #include "led.h"
+#include "quat.h"
 #include "receiver.h"
 #include "systick.h"
 #include "pwm.h"
@@ -11,11 +13,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define MADGWICK_LEARNING_RATE 0.1
+
 /* FOR DEBUG */
 uint32_t t0 = 0;
 
-/* IMU data structure */
+/* Data structures */
 struct IMU_Data imu_data;
+struct Quaternion quat = {
+    .w = 1,
+    .x = 0,
+    .y = 0,
+    .z = 0
+};
 
 /***********************************************************************
 -- PRIVATE FUNCTIONS --
@@ -95,13 +105,27 @@ void app_loop(void) {
     /* Read IMU */
     uint8_t imu_data_valid = read_imu_data(&imu_data);
     if (imu_data_valid) {
+        madgwick_imu(
+            MADGWICK_LEARNING_RATE,
+            imu_data.ax, imu_data.ay, imu_data.az,
+            imu_data.gx, imu_data.gy, imu_data.gz,
+            imu_data.ts_delta,
+            &quat
+        );
+        int16_t qw = quat.w * 1000;
+        int16_t qx = quat.x * 1000;
+        int16_t qy = quat.y * 1000;
+        int16_t qz = quat.z * 1000;
+
         uint8_t tx_buf[256];
         uint8_t tx_buf_len = snprintf(
             (char*) tx_buf, 256,
-            "%hd,%hd,%hd,%hd,%hd,%hd,%hu\r\n",
-            imu_data.ax, imu_data.ay, imu_data.az,
-            imu_data.gx, imu_data.gy, imu_data.gz,
-            imu_data.ts_delta
+            // "%hd,%hd,%hd,%hd,%hd,%hd,%hu\r\n",
+            // imu_data.ax, imu_data.ay, imu_data.az,
+            // imu_data.gx, imu_data.gy, imu_data.gz,
+            // imu_data.ts_delta
+            "%hd,%hd,%hd,%hd\r\n",
+            qw, qx, qy, qz
         );
         CDC_Transmit_FS(tx_buf, tx_buf_len);
     }
