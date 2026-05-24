@@ -4,30 +4,19 @@
 #include "hw_config.h"
 #include <stdint.h>
 
-/*
-    Timer defines
-*/
-#define TIM_PRESCALER   (159UL)   // Prescaler for the timers
-#define TIM_PERIOD      (20000UL) // Timer period in microseconds
+/* Timer defines */
+#define TIM_PRESCALER   (159UL)
+#define TIM_PERIOD      (20000UL)
 
-// Initialize the timers instance
-timers_s timers = {
-    .tim2_cc = {0},
-    .tim4_cc = {0}
-};
-
-// ----------------------------------------------------------------------
-// PRIVATE FUNCTIONS
-// ----------------------------------------------------------------------
+/***********************************************************************
+-- PRIVATE FUNCTIONS --
+***********************************************************************/
 
 /*!
     @brief Configure GPIO pins PA0-PA3, PB6, and PB7 as timer outputs
 */
 static void configure_pins(void) {
-    /*
-        Configure PA0-PA3 for use by timer 2
-    */
-    // Set alternate function for PA0-PA3 as timer 2 output pins
+    /* Set alternate function for PA0-PA3 as timer 2 output pins */
     SET_BIT(
         GPIOA->AFR[0],
         GPIO_PA0_AF_TIM2_CH1 |
@@ -35,7 +24,8 @@ static void configure_pins(void) {
         GPIO_PA2_AF_TIM2_CH3 |
         GPIO_PA3_AF_TIM2_CH4
     );
-    // Set PA0-PA3 into alternate function mode
+
+    /* Set PA0-PA3 into alternate function mode */
     MODIFY_REG(
         GPIOA->MODER,
         GPIO_MODER_MODE0 |
@@ -48,16 +38,14 @@ static void configure_pins(void) {
         GPIO_PA3_AF_MODE
     );
 
-    /*
-        Configure PB6 and PB7 for use by timer 4
-    */
-    // Set alternate function for PB6 and PB7 as timer 4 output pins
+    /* Set alternate function for PB6 and PB7 as timer 4 output pins */
     SET_BIT(
         GPIOB->AFR[0],
         GPIO_PB6_AF_TIM4_CH1 |
         GPIO_PB7_AF_TIM4_CH2
     );
-    // Set PB6 and PB7 into alternate function mode
+
+    /* Set PB6 and PB7 into alternate function mode */
     MODIFY_REG(
         GPIOB->MODER,
         GPIO_MODER_MODE6 |
@@ -96,10 +84,10 @@ static void configure_timers(void) {
         Unfortunately, the OCxM bits aren't contiguous in this register, so we
         have to set the bits individually
     */
-    uint32_t oc1m_pwm_mode_1 = TIM_CCMR1_OC1M_2 | TIM_CCMR1_OC1M_1; // 0b0110
-    uint32_t oc2m_pwm_mode_1 = TIM_CCMR1_OC2M_2 | TIM_CCMR1_OC2M_1; // 0b0110
-    uint32_t oc3m_pwm_mode_1 = TIM_CCMR2_OC3M_2 | TIM_CCMR2_OC3M_1; // 0b0110
-    uint32_t oc4m_pwm_mode_1 = TIM_CCMR2_OC4M_2 | TIM_CCMR2_OC4M_1; // 0b0110
+    uint32_t oc1m_pwm_mode_1 = TIM_CCMR1_OC1M_2 | TIM_CCMR1_OC1M_1;
+    uint32_t oc2m_pwm_mode_1 = TIM_CCMR1_OC2M_2 | TIM_CCMR1_OC2M_1;
+    uint32_t oc3m_pwm_mode_1 = TIM_CCMR2_OC3M_2 | TIM_CCMR2_OC3M_1;
+    uint32_t oc4m_pwm_mode_1 = TIM_CCMR2_OC4M_2 | TIM_CCMR2_OC4M_1;
     SET_BIT(TIM2->CCMR1, oc2m_pwm_mode_1 | oc1m_pwm_mode_1);
     SET_BIT(TIM2->CCMR2, oc4m_pwm_mode_1 | oc3m_pwm_mode_1);
     SET_BIT(TIM4->CCMR1, oc2m_pwm_mode_1 | oc1m_pwm_mode_1);
@@ -124,31 +112,25 @@ static void configure_timers(void) {
     SET_BIT(TIM2->CCMR2, TIM_CCMR2_OC4PE | TIM_CCMR2_OC3PE);
     SET_BIT(TIM4->CCMR1, TIM_CCMR1_OC2PE | TIM_CCMR1_OC1PE);
 
-    /*
-        Preload the compare registers by generating an update event
-    */
+    /* Preload the compare registers by generating an update event */
     SET_BIT(TIM2->EGR, TIM_EGR_UG);
     SET_BIT(TIM4->EGR, TIM_EGR_UG);
 
-    /*
-        Enable the timer pin outputs
-    */
+    /* Enable the timer pin outputs */
     uint32_t tim2_ccer = TIM_CCER_CC1E | TIM_CCER_CC2E |
                          TIM_CCER_CC3E | TIM_CCER_CC4E;
     uint32_t tim4_ccer = TIM_CCER_CC1E | TIM_CCER_CC2E;
     SET_BIT(TIM2->CCER, tim2_ccer);
     SET_BIT(TIM4->CCER, tim4_ccer);
 
-    /*
-        Enable the counters
-    */
+    /* Enable the counters */
     SET_BIT(TIM2->CR1, TIM_CR1_CEN);
     SET_BIT(TIM4->CR1, TIM_CR1_CEN);
 }
 
-// ----------------------------------------------------------------------
-// PUBLIC FUNCTIONS
-// ----------------------------------------------------------------------
+/***********************************************************************
+-- PUBLIC FUNCTIONS --
+***********************************************************************/
 
 /*!
     @brief Initialize the timers to output 50Hz PWM on the timer pins
@@ -160,6 +142,7 @@ void timers_init(void) {
 
 /*!
     @brief Update the compare registers for the timers
+    @param timer_data Pointer to Timer_Data struct containing new CC values
     @details Timer 2 compare registers are 32-bit so the values can be
     directly written, whereas timer 4 compare registers are 16-bit so the values
     need to be masked before being written
@@ -168,11 +151,11 @@ void timers_init(void) {
     don't take effect till AFTER a PWM cycle has completed. This preserves the
     previous pulse to prevent potential unwanted behavior from connected devices
 */
-void timers_update_cc(void) {
-    WRITE_REG(TIM2->CCR1, timers.tim2_cc[0]);
-    WRITE_REG(TIM2->CCR2, timers.tim2_cc[1]);
-    WRITE_REG(TIM2->CCR3, timers.tim2_cc[2]);
-    WRITE_REG(TIM2->CCR4, timers.tim2_cc[3]);
-    WRITE_REG(TIM4->CCR1, timers.tim4_cc[0] & 0xFFFF);
-    WRITE_REG(TIM4->CCR2, timers.tim4_cc[1] & 0xFFFF);
+void timers_update_cc(struct Timer_Data *timer_data) {
+    WRITE_REG(TIM2->CCR1, timer_data->tim2_cc[0]);
+    WRITE_REG(TIM2->CCR2, timer_data->tim2_cc[1]);
+    WRITE_REG(TIM2->CCR3, timer_data->tim2_cc[2]);
+    WRITE_REG(TIM2->CCR4, timer_data->tim2_cc[3]);
+    WRITE_REG(TIM4->CCR1, timer_data->tim4_cc[0] & 0xFFFF);
+    WRITE_REG(TIM4->CCR2, timer_data->tim4_cc[1] & 0xFFFF);
 }

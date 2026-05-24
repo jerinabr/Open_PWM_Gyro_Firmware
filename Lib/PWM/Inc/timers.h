@@ -35,12 +35,14 @@
 extern "C" {
 #endif
 
-// ----------------------------------------------------------------------
-// TYPES
-// ----------------------------------------------------------------------
+/***********************************************************************
+-- TIMER DATA STRUCTURE --
+***********************************************************************/
 
-// Struct to hold requested timer compare register values
-typedef struct {
+/*!
+    @brief CC values for timer 2 and timer 4
+*/
+struct Timer_Data {
     /*!< TIM2 compare registers values (32-bit)
         Channels 1-4 */
     uint32_t tim2_cc[4];
@@ -48,17 +50,14 @@ typedef struct {
     /*!< TIM4 compare registers values (16-bit)
         Channels 1-2 */
     uint32_t tim4_cc[2];
-} timers_s;
+};
 
-// Global instance of timers
-extern timers_s timers;
-
-// ----------------------------------------------------------------------
-// FUNCTIONS
-// ----------------------------------------------------------------------
+/***********************************************************************
+-- FUNCTIONS --
+***********************************************************************/
 
 void timers_init(void);
-void timers_update_cc(void);
+void timers_update_cc(struct Timer_Data *timer_data);
 
 #ifdef __cplusplus
 }
