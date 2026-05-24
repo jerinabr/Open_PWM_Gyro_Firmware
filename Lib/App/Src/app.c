@@ -147,10 +147,7 @@ void app_loop(void) {
         CDC_Transmit_FS(tx_buf, tx_buf_len);
 
         /* Pass RX outputs straight to channel outputs */
-        for (int i = 0; i < NUM_CHANNELS; i++) {
-            pwm.ch_outputs[i] = (int16_t) rx.channel_data[i] - 1500;
-        }
-        pwm_update();
+        pwm_update_pw(rx.channel_data);
     }
 
     /*
