@@ -24,13 +24,24 @@ void pwm_init(void) {
 }
 
 /*!
+    @brief Configure a channel as reversed or normal
+    @param channel Channel number (must be less than NUM_OUTPUT_CHANNELS)
+    @param reversed 0 for normal, 1 for reversed
+*/
+void pwm_channel_reverse_config(uint8_t channel, uint8_t reversed) {
+    if (channel < NUM_OUTPUT_CHANNELS) {
+        ch_reversed[channel] = reversed;
+    }
+}
+
+/*!
     @brief Update the PWM pulse widths
     @param pulse_widths Array of pulse widths in 1 us resolution. Values should
     be in the range [500, 2500]
     @details This function updates the pulse widths based on configuration and
     then maps them to the correct timers and channels
 */
-void pwm_update_pw(uint16_t pulse_widths[]) {
+void update_pwm_pw(uint16_t pulse_widths[]) {
     for (int i = 0; i < NUM_OUTPUT_CHANNELS; i++) {
         /* Clamp the pulse width */
         if (pulse_widths[i] < PULSE_WIDTH_MIN) {
@@ -57,15 +68,4 @@ void pwm_update_pw(uint16_t pulse_widths[]) {
 
     /* Update timer CC values */
     timers_update_cc(&timer_data);
-}
-
-/*!
-    @brief Configure a channel as reversed or normal
-    @param channel Channel number (must be less than NUM_OUTPUT_CHANNELS)
-    @param reversed 0 for normal, 1 for reversed
-*/
-void pwm_channel_reverse_config(uint8_t channel, uint8_t reversed) {
-    if (channel < NUM_OUTPUT_CHANNELS) {
-        ch_reversed[channel] = reversed;
-    }
 }

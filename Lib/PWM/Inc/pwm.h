@@ -27,8 +27,9 @@ extern "C" {
 ***********************************************************************/
 
 void pwm_init(void);
-void pwm_update_pw(uint16_t pulse_widths[]);
 void pwm_channel_reverse_config(uint8_t channel, uint8_t reversed);
+
+void update_pwm_pw(uint16_t pulse_widths[]);
 
 #ifdef __cplusplus
 }
