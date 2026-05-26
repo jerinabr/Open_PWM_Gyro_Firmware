@@ -12,6 +12,10 @@ This gyro will have a few modes including but not limited to:
   - Directly pass the RX output to the channels without any stabilization input
 - Stabilize
   - Counteract any unwanted rotational forces that act on the plane due to wind or aircraft instability
+- Hold
+  - Try to maintain the aircraft's current orientation. This is a step above stabilize.
+- Level
+  - Bring the aircraft to level flight when the controls are centered. This is useful if you panic or lose orientation during a maneuver.
 - Angle Limit
   - Limit the roll and pitch angles of the aircraft and return to level flight when the pitch and roll inputs are centered
 
@@ -53,7 +57,9 @@ This is for two main reasons:
 
 - [x] Add sensor fusion library/algorithm
 - [ ] Implement gyro modes
-  - [ ] Implement gyro off
-  - [ ] Implement gyro stabilize
-  - [ ] Implement gyro angle limit
+  - [ ] Off
+  - [ ] Stabilize
+  - [ ] Hold
+  - [ ] Level
+  - [ ] Angle limit
 - [ ] Think of more stuff to implement
