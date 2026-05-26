@@ -1,5 +1,5 @@
 #include "ibus.h"
-#include "receiver.h"
+#include "hw_config.h"
 #include <stdint.h>
 
 #define MIN_FRAME_LENGTH    0x04
@@ -34,6 +34,9 @@ void reset_ibus() {
 
 /*!
     @brief Parse the incoming IBus data and extract channel data
+    @param data Byte of data from the receiver UART
+    @param channel_data Array of decoded channel data
+    @returns 1 if data valid, 0 if not
     @details Every IBus frame has a packet length byte, command byte, some
     amount of payload bytes, and 2 bytes for a 16-bit checksum, in that order
 
@@ -48,7 +51,7 @@ void reset_ibus() {
     If the command code is a channel data command (0x40), then convert the
     payload data into channel data and indicate the received data was valid
 */
-void parse_ibus_data(uint8_t data) {
+uint8_t parse_ibus_data(uint8_t data, uint16_t channel_data[]) {
     switch (state) {
         case WAIT_FOR_LENGTH: {
             if (data > MIN_FRAME_LENGTH && data <= MAX_FRAME_LENGTH) {
@@ -87,15 +90,16 @@ void parse_ibus_data(uint8_t data) {
             checksum_rx |= (uint16_t) data << 8;
             if (checksum_calc == checksum_rx) {
                 if (cmd == SERVO_CMD_CODE) {
-                    for (int i = 0; i < MAX_CHANNELS; i++) {
+                    for (int i = 0; i < MAX_RX_CHANNELS; i++) {
                         uint16_t msb = (uint16_t) ibus_buf[2*i + 1] << 8;
                         uint16_t lsb = (uint16_t) ibus_buf[2*i];
-                        rx.channel_data[i] = msb | lsb;
+                        channel_data[i] = msb | lsb;
                     }
-                    rx.channel_data_valid = 1;
+                    return 1;
                 }
             }
             break;
         }
     }
+    return 0;
 }

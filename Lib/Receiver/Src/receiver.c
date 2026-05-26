@@ -3,36 +3,32 @@
 #include "usart1.h"
 #include <stdint.h>
 
-// Initialize the receiver instance
-receiver rx = {
-    .channel_data = {0},
-    .channel_data_valid = 0
-};
+/* Function pointer to the selected protocol decoder function */
+static uint8_t (*decode_rx_data)(uint8_t data, uint16_t channel_data[]);
 
-// Function pointer to the selected protocol decoder function
-static void (*decode_rx_data)(uint8_t data);
-
-// ----------------------------------------------------------------------
-// PRIVATE FUNCTIONS
-// ----------------------------------------------------------------------
+/***********************************************************************
+-- PRIVATE FUNCTIONS --
+***********************************************************************/
 
 /*!
-    @brief Set the channels and valid flag to 0
+    @brief Dummy function that returns RX data invalid
     @details This is just here till I implement all the receiver protocols
 */
-static void decode_rx_data_placeholder(uint8_t data) {
-    for (int i = 0; i < MAX_CHANNELS; i++) {
-        rx.channel_data[i] = 0;
-    }
-    rx.channel_data_valid = 0;
+static uint8_t dummy_decode_rx_data(uint8_t data, uint16_t channel_data[]) {
+    return 0;
 }
 
 /*!
     @brief Configure the USART and assign the decoder function pointer
+    @param rx_protocol Enum that defines the RX protocol to be used
+    @param usart_config Pointer to USART config struct that will be updated with
+    the new configuration
+    @details This function will select the appropriate USART configuration and
+    reassign the rx decoder function pointer based on the desired protocol
 */
 static void select_rx_config(
-    usart_config* usart_config,
-    rx_protocols rx_protocol
+    RX_PROTOCOLS rx_protocol,
+    struct USART1_Config *usart_config
 ) {
     switch (rx_protocol) {
         case IBUS: {
@@ -43,53 +39,54 @@ static void select_rx_config(
             break;
         }
         case CRSF: {
-            // TODO: Implement this eventually
-            decode_rx_data = decode_rx_data_placeholder;
+            /* TODO: Implement this eventually */
+            usart_config->baud_rate = USART1_DEFAULT_BAUD_RATE;
+            usart_config->idle_level = USART1_DEFAULT_IDLE_LEVEL;
+            decode_rx_data = dummy_decode_rx_data;
             break;
         }
         default: {
-            decode_rx_data = decode_rx_data_placeholder;
+            usart_config->baud_rate = USART1_DEFAULT_BAUD_RATE;
+            usart_config->idle_level = USART1_DEFAULT_IDLE_LEVEL;
+            decode_rx_data = dummy_decode_rx_data;
             break;
         }
     }
 }
 
-// ----------------------------------------------------------------------
-// PUBLIC FUNCTIONS
-// ----------------------------------------------------------------------
+/***********************************************************************
+-- PUBLIC FUNCTIONS --
+***********************************************************************/
 
 /*!
     @brief Initialize the reciever with a specific protocol
 */
-void receiver_init(rx_protocols rx_protocol) {
-    usart_config usart_config = {
-        .baud_rate = usart1_default_config.baud_rate,
-        .idle_level = usart1_default_config.idle_level
-    };
-    select_rx_config(&usart_config, rx_protocol);
+void receiver_init(RX_PROTOCOLS rx_protocol) {
+    struct USART1_Config usart_config;
+    select_rx_config(rx_protocol, &usart_config);
     usart1_init(&usart_config);
 }
 
 /*!
     @brief Reconfigure the receiver with a specific protocol
 */
-void receiver_reconfig(rx_protocols rx_protocol) {
-    usart_config usart_config = {
-        .baud_rate = usart1_default_config.baud_rate,
-        .idle_level = usart1_default_config.idle_level
-    };
-    select_rx_config(&usart_config, rx_protocol);
+void receiver_reconfig(RX_PROTOCOLS rx_protocol) {
+    struct USART1_Config usart_config;
+    select_rx_config(rx_protocol, &usart_config);
     usart1_reconfig(&usart_config);
 }
 
 /*!
     @brief Read the RX FIFO and parse the data
-
-    This function should be called in the main program loop
+    @param channel_data Array that will contain the decoded channel data from
+    the receiver
+    @return 1 if data valid, 0 if not
+    @details This function should be called in the main program loop
 */
-void process_receiver() {
+uint8_t read_receiver(uint16_t channel_data[]) {
     if (!usart1_rx_fifo_empty()) {
         uint8_t data = usart1_read_rx_fifo();
-        decode_rx_data(data);
+        return decode_rx_data(data, channel_data);
     }
+    return 0;
 }

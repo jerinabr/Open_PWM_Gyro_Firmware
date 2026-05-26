@@ -5,17 +5,12 @@
 #include <math.h>
 #include <stdint.h>
 
-// Prescaler=1 so USART1 clock = APB2 clock
+/* Prescaler=1 so USART1 clock = APB2 clock */
 #define USART1_KER_CK_PRES      (160E6f)
 
-// ----------------------------------------------------------------------
-// CONSTANTS
-// ----------------------------------------------------------------------
-
-const usart_config usart1_default_config = {
-    .baud_rate = 115200,
-    .idle_level = 1
-};
+/***********************************************************************
+-- CONSTANTS --
+***********************************************************************/
 
 /*
     MIN_BAUD_RATE is calculated by dividing the USART1 clock by the largest
@@ -29,9 +24,9 @@ const usart_config usart1_default_config = {
 const uint32_t MIN_BAUD_RATE = USART1_KER_CK_PRES / 65535 + 1;
 const uint32_t MAX_BAUD_RATE = USART1_KER_CK_PRES / 16;
 
-// ----------------------------------------------------------------------
-// PRIVATE FUNCTIONS
-// ----------------------------------------------------------------------
+/***********************************************************************
+-- PRIVATE FUNCTIONS --
+***********************************************************************/
 
 /*!
     @brief Calculate the USART_BRR register value needed for a given baud rate
@@ -48,13 +43,14 @@ static inline uint16_t calculate_brr(uint32_t baud) {
     @brief Configure GPIO pins PA9 and PA10 to be used by USART1
 */
 static void configure_pins(void) {
-    // Set alternate function for PA9 and PA10 as USART1 pins
+    /* Set alternate function for PA9 and PA10 as USART1 pins */
     SET_BIT(
         GPIOA->AFR[1],
         GPIO_PA9_AF_USART1_TX |
         GPIO_PA10_AF_USART1_RX
     );
-    // Set PA9 and PA10 into alternate function mode
+
+    /* Set PA9 and PA10 into alternate function mode */
     MODIFY_REG(
         GPIOA->MODER,
         GPIO_MODER_MODE9 | GPIO_MODER_MODE10,
@@ -62,14 +58,14 @@ static void configure_pins(void) {
     );
 }
 
-// ----------------------------------------------------------------------
-// PUBLIC FUNCTIONS
-// ----------------------------------------------------------------------
+/***********************************************************************
+-- PUBLIC FUNCTIONS --
+***********************************************************************/
 
 /*!
     @brief Initialize the USART1 peripheral with specified configuration
 */
-void usart1_init(const usart_config *config_data) {
+void usart1_init(struct USART1_Config *config_data) {
     configure_pins();
     usart1_reconfig(config_data);
 }
@@ -77,55 +73,54 @@ void usart1_init(const usart_config *config_data) {
 /*!
     @brief Reconfigure USART1 with the specified configuration
 */
-void usart1_reconfig(const usart_config *config_data) {
-    // Flush the receive FIFO before reconfiguration
-    // Give tmp an "unused" attribute to avoid unused variable compiler warning
+void usart1_reconfig(struct USART1_Config *config_data) {
+    /*
+        Flush the receive FIFO before reconfiguration
+        Give tmp an "unused" attribute to avoid unused variable compiler warning
+    */
     uint8_t __attribute__((unused)) tmp;
     while (!usart1_rx_fifo_empty()) {
         tmp = usart1_read_rx_fifo();
     }
 
-    // Disable USART1 before reconfiguration
+    /* Disable USART1 before reconfiguration */
     CLEAR_BIT(USART1->CR1, USART_CR1_UE);
 
-    /*
-        Validate specified configuration
-    */
-    const usart_config *selected_config;
+    /* Declare the USART1 config with default values */
+    struct USART1_Config selected_config = {
+        .baud_rate = USART1_DEFAULT_BAUD_RATE,
+        .idle_level = USART1_DEFAULT_IDLE_LEVEL
+    };
+
+    /* Apply specified configuration if it's valid */
     if (
         config_data->baud_rate >= MIN_BAUD_RATE &&
         config_data->baud_rate <= MAX_BAUD_RATE &&
         config_data->idle_level <= 1
     ) {
-        selected_config = config_data;
-    }
-    // If given configuration is invalid then use default configuration
-    else {
-        selected_config = &usart1_default_config;
+        selected_config = *config_data;
     }
 
-    /*
-        Select bit fields based on selected configuration
-    */
-    uint16_t brr_val = calculate_brr(selected_config->baud_rate);
-    uint8_t rxinv_val = selected_config->idle_level == 0 ? 1 : 0;
+    /* Select bit fields based on selected configuration */
+    uint16_t brr_val = calculate_brr(selected_config.baud_rate);
+    uint8_t rxinv_val = selected_config.idle_level == 0 ? 1 : 0;
 
-    /*
-        Configure USART1 registers
-    */
-    MODIFY_REG( // Set baud rate
+    /* Configure USART1 baud rate */
+    MODIFY_REG(
         USART1->BRR,
         USART_BRR_BRR_Msk,
         brr_val
     );
-    MODIFY_REG( // Set rx inverted control
+
+    /* Configure USART1 RX inverted control */
+    MODIFY_REG(
         USART1->CR2,
         USART_CR2_RXINV_Msk,
         rxinv_val << USART_CR2_RXINV_Pos
     );
-    SET_BIT(USART1->CR1,    USART_CR1_FIFOEN |  // Enable FIFOs
-                            USART_CR1_RE |      // Enable receiver
-                            USART_CR1_UE);      // Enable USART
+    SET_BIT(USART1->CR1,    USART_CR1_FIFOEN |  /* Enable FIFOs */
+                            USART_CR1_RE |      /* Enable receiver */
+                            USART_CR1_UE);      /* Enable USART */
 }
 
 /*!

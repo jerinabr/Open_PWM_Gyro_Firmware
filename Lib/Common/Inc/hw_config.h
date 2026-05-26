@@ -15,6 +15,7 @@ extern "C" {
 /*
     System Configuration
 */
+#define MAX_RX_CHANNELS         16
 #define NUM_OUTPUT_CHANNELS     6
 
 /*

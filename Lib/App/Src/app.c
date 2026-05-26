@@ -1,5 +1,6 @@
 #include "ahrs.h"
 #include "app.h"
+#include "hw_config.h"
 #include "imu.h"
 #include "led.h"
 #include "quat.h"
@@ -26,6 +27,9 @@ struct Quaternion quat = {
     .y = 0,
     .z = 0
 };
+
+/* RX data */
+uint16_t rx_channel_data[MAX_RX_CHANNELS];
 
 /***********************************************************************
 -- PRIVATE FUNCTIONS --
@@ -100,7 +104,25 @@ void app_config(void) {
 */
 void app_loop(void) {
     /* Process peripheral data */
-    process_receiver();
+    uint8_t rx_data_valid = read_receiver(rx_channel_data);
+
+    /* FOR DEBUG */
+    if (rx_data_valid) {
+        /* Print RX outputs to USB */
+        uint8_t tx_buf[64];
+        uint8_t tx_buf_len = snprintf(
+            (char*) tx_buf, 64,
+            "Ch1: %hu\tCh2: %hu\tCh3: %hu\tCh4: %hu\r\n",
+            rx_channel_data[0],
+            rx_channel_data[1],
+            rx_channel_data[2],
+            rx_channel_data[3]
+        );
+        CDC_Transmit_FS(tx_buf, tx_buf_len);
+
+        /* Pass RX outputs straight to channel outputs */
+        update_pwm_pw(rx_channel_data);
+    }
 
     /* Read IMU */
     uint8_t imu_data_valid = read_imu_data(&imu_data);
@@ -120,34 +142,14 @@ void app_loop(void) {
         uint8_t tx_buf[256];
         uint8_t tx_buf_len = snprintf(
             (char*) tx_buf, 256,
-            // "%hd,%hd,%hd,%hd,%hd,%hd,%hu\r\n",
-            // imu_data.ax, imu_data.ay, imu_data.az,
-            // imu_data.gx, imu_data.gy, imu_data.gz,
-            // imu_data.ts_delta
+            /* "%hd,%hd,%hd,%hd,%hd,%hd,%hu\r\n",
+            imu_data.ax, imu_data.ay, imu_data.az,
+            imu_data.gx, imu_data.gy, imu_data.gz,
+            imu_data.ts_delta */
             "%hd,%hd,%hd,%hd\r\n",
             qw, qx, qy, qz
         );
         CDC_Transmit_FS(tx_buf, tx_buf_len);
-    }
-
-    /* FOR DEBUG */
-    if (rx.channel_data_valid) {
-        rx.channel_data_valid = 0;
-
-        /* Print RX outputs to USB */
-        uint8_t tx_buf[64];
-        uint8_t tx_buf_len = snprintf(
-            (char*) tx_buf, 64,
-            "Ch1: %hu\tCh2: %hu\tCh3: %hu\tCh4: %hu\r\n",
-            rx.channel_data[0],
-            rx.channel_data[1],
-            rx.channel_data[2],
-            rx.channel_data[3]
-        );
-        CDC_Transmit_FS(tx_buf, tx_buf_len);
-
-        /* Pass RX outputs straight to channel outputs */
-        update_pwm_pw(rx.channel_data);
     }
 
     /*

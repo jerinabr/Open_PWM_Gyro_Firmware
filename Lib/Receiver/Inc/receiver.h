@@ -36,35 +36,24 @@
 extern "C" {
 #endif
 
-#define MAX_CHANNELS 16
+/***********************************************************************
+-- TYPES --
+***********************************************************************/
 
-// ----------------------------------------------------------------------
-// TYPES
-// ----------------------------------------------------------------------
-
-// Receiver protocols
+/* Receiver protocols */
 typedef enum {
     IBUS,
     CRSF
-} rx_protocols;
+} RX_PROTOCOLS;
 
-// Struct to hold receiver data
-typedef struct {
-    uint16_t channel_data[MAX_CHANNELS];
-    uint8_t channel_data_valid;
-} receiver;
+/***********************************************************************
+-- FUNCTIONS --
+***********************************************************************/
 
-// Global instance of rx
-extern receiver rx;
+void receiver_init(RX_PROTOCOLS rx_protocol);
+void receiver_reconfig(RX_PROTOCOLS rx_protocol);
 
-// ----------------------------------------------------------------------
-// FUNCTIONS
-// ----------------------------------------------------------------------
-
-void receiver_init(rx_protocols rx_protocol);
-void receiver_reconfig(rx_protocols rx_protocol);
-
-void process_receiver(void);
+uint8_t read_receiver(uint16_t channel_data[]);
 
 #ifdef __cplusplus
 }
