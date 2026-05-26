@@ -13,6 +13,12 @@ extern "C" {
 #endif
 
 /*
+    System Configuration
+*/
+#define MAX_RX_CHANNELS         16
+#define NUM_OUTPUT_CHANNELS     6
+
+/*
     GPIO Configuration
 
     All the peripheral pins and their configurations are defined here

@@ -25,14 +25,17 @@
 extern "C" {
 #endif
 
-// ----------------------------------------------------------------------
-// TYPES
-// ----------------------------------------------------------------------
+#define USART1_DEFAULT_BAUD_RATE 115200
+#define USART1_DEFAULT_IDLE_LEVEL 0
+
+/***********************************************************************
+-- USART CONFIG DATA STRUCTURE --
+***********************************************************************/
 
 /*!
-  @brief USART configuration data
+    @brief USART configuration data
 */
-typedef struct {
+struct USART1_Config {
     /*!< Baud rate must be > 0 and <= 10,000,000 */
     uint32_t baud_rate;
 
@@ -40,20 +43,14 @@ typedef struct {
         0 - Idle logic level is low
         1 - Idle logic level is high */
     uint8_t idle_level;
-} usart_config;
+};
 
-// ----------------------------------------------------------------------
-// CONSTANTS
-// ----------------------------------------------------------------------
+/***********************************************************************
+-- FUNCTIONS --
+***********************************************************************/
 
-extern const usart_config usart1_default_config;
-
-// ----------------------------------------------------------------------
-// FUNCTIONS
-// ----------------------------------------------------------------------
-
-void usart1_init(const usart_config *config_data);
-void usart1_reconfig(const usart_config *config_data);
+void usart1_init(struct USART1_Config *config_data);
+void usart1_reconfig(struct USART1_Config *config_data);
 
 uint8_t usart1_rx_fifo_empty(void);
 uint8_t usart1_read_rx_fifo(void);

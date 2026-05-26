@@ -1,41 +1,17 @@
 #include "pwm.h"
 #include "timers.h"
+#include "hw_config.h"
 #include <stdint.h>
 
-// Initialize the pwm instance
-pwm_s pwm = {
-    .ch_outputs = {0},
-    .ch_reversed = {0}
-};
+/* Channel configuration */
+uint8_t ch_reversed[NUM_OUTPUT_CHANNELS] = {0};
 
-// Array of converted channel outputs
-uint32_t channel_output_cc[NUM_CHANNELS];
+/* Timer data structure */
+struct Timer_Data timer_data;
 
-// ----------------------------------------------------------------------
-// PRIVATE FUNCTIONS
-// ----------------------------------------------------------------------
-
-/*!
-    @brief Convert channel outputs to timer compare register values
-    @details The channel is mapped 1000-2000 if it isn't reversed
-
-    If the channel is reversed, a value of -500 maps to 2000 and a value of
-    500 maps to 1000
-*/
-static void convert_ch_outputs_to_cc(void) {
-    for (int i = 0; i < NUM_CHANNELS; i++) {
-        if (pwm.ch_reversed[i]) {
-            channel_output_cc[i] = (uint32_t) (1500 - pwm.ch_outputs[i]);
-        }
-        else {
-            channel_output_cc[i] = (uint32_t) (pwm.ch_outputs[i] + 1500);
-        }
-    }
-}
-
-// ----------------------------------------------------------------------
-// PUBLIC FUNCTIONS
-// ----------------------------------------------------------------------
+/***********************************************************************
+-- PUBLIC FUNCTIONS --
+***********************************************************************/
 
 /*!
     @brief Initialize the PWM outputs
@@ -48,19 +24,48 @@ void pwm_init(void) {
 }
 
 /*!
-    @brief Update the PWM outputs
-    @details This function converts the channel values to timer compare values
-    and then maps them to the correct timers and channels
+    @brief Configure a channel as reversed or normal
+    @param channel Channel number (must be less than NUM_OUTPUT_CHANNELS)
+    @param reversed 0 for normal, 1 for reversed
 */
-void pwm_update(void) {
-    convert_ch_outputs_to_cc();
-    // Timer 4 compare registers
-    timers.tim4_cc[1] = channel_output_cc[0];
-    timers.tim4_cc[0] = channel_output_cc[1];
-    // Timer 2 compare registers
-    timers.tim2_cc[0] = channel_output_cc[2];
-    timers.tim2_cc[1] = channel_output_cc[3];
-    timers.tim2_cc[2] = channel_output_cc[4];
-    timers.tim2_cc[3] = channel_output_cc[5];
-    timers_update_cc();
+void pwm_channel_reverse_config(uint8_t channel, uint8_t reversed) {
+    if (channel < NUM_OUTPUT_CHANNELS) {
+        ch_reversed[channel] = reversed;
+    }
+}
+
+/*!
+    @brief Update the PWM pulse widths
+    @param pulse_widths Array of pulse widths in 1 us resolution. Values should
+    be in the range [500, 2500]
+    @details This function updates the pulse widths based on configuration and
+    then maps them to the correct timers and channels
+*/
+void update_pwm_pw(uint16_t pulse_widths[]) {
+    for (int i = 0; i < NUM_OUTPUT_CHANNELS; i++) {
+        /* Clamp the pulse width */
+        if (pulse_widths[i] < PULSE_WIDTH_MIN) {
+            pulse_widths[i] = PULSE_WIDTH_MIN;
+        } else if (pulse_widths[i] > PULSE_WIDTH_MAX) {
+            pulse_widths[i] = PULSE_WIDTH_MAX;
+        }
+
+        /* Reverse the channel around the pulse width center */
+        if (ch_reversed[i]) {
+            pulse_widths[i] = 2 * PULSE_WIDTH_CENTER - pulse_widths[i];
+        }
+    }
+
+    /* Update timer 4 compare registers */
+    timer_data.tim4_cc[1] = (uint32_t) pulse_widths[0];
+    timer_data.tim4_cc[0] = (uint32_t) pulse_widths[1];
+
+    /* Update timer 2 compare registers */
+    timer_data.tim2_cc[0] = (uint32_t) pulse_widths[2];
+    timer_data.tim2_cc[1] = (uint32_t) pulse_widths[3];
+    timer_data.tim2_cc[2] = (uint32_t) pulse_widths[4];
+    timer_data.tim2_cc[3] = (uint32_t) pulse_widths[5];
+
+    /* Update timer CC values */
+    timers_update_cc(&timer_data);
 }

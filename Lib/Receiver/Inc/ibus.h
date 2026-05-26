@@ -27,7 +27,7 @@ extern "C" {
 #define IBUS_IDLE_LEVEL 1
 
 void reset_ibus(void);
-void parse_ibus_data(uint8_t data);
+uint8_t parse_ibus_data(uint8_t data, uint16_t channel_data[]);
 
 #ifdef __cplusplus
 }
