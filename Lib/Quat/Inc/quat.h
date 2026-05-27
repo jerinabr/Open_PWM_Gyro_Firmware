@@ -25,7 +25,8 @@ struct Quaternion {
 -- FUNCTIONS --
 ***********************************************************************/
 
-void quat_norm(struct Quaternion *quat);
+void quat_norm(struct Quaternion *q);
+void quat_mult(struct Quaternion *q0, struct Quaternion *q1);
 
 #ifdef __cplusplus
 }

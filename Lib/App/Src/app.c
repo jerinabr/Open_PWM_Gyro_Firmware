@@ -21,12 +21,13 @@ uint32_t t0 = 0;
 
 /* Data structures */
 struct IMU_Data imu_data;
-struct Quaternion quat = {
+struct Quaternion q_imu = {
     .w = 1,
     .x = 0,
     .y = 0,
     .z = 0
 };
+struct Quaternion q_ang_vel = {0};
 
 /* RX data */
 uint16_t rx_channel_data[MAX_RX_CHANNELS];
@@ -63,6 +64,34 @@ static void enable_peripheral_clocks(void) {
                             RCC_APB2ENR_SYSCFGEN;
     SET_BIT(RCC->APB2ENR, APB2ENR_Mask);
     while (!READ_BIT(RCC->APB2ENR, APB2ENR_Mask));
+}
+
+/*!
+    @brief Calculate orientation of the IMU
+    @returns 1 if orientation updated, 0 if not
+*/
+uint8_t calc_orientation(void) {
+    /* Read IMU */
+    uint8_t imu_data_valid = read_imu_data(&imu_data);
+    if (!imu_data_valid) {
+        return 0;
+    }
+
+    /* Update the angular velocity quaternion */
+    q_ang_vel.x = imu_data.gx;
+    q_ang_vel.y = imu_data.gy;
+    q_ang_vel.z = imu_data.gz;
+    
+    /* Update the orientation quaternion using the Madgwick filter */
+    madgwick_imu(
+        MADGWICK_LEARNING_RATE,
+        imu_data.ax, imu_data.ay, imu_data.az,
+        imu_data.gx, imu_data.gy, imu_data.gz,
+        imu_data.ts_delta,
+        &q_imu
+    );
+
+    return 1;
 }
 
 /***********************************************************************
@@ -124,20 +153,14 @@ void app_loop(void) {
         update_pwm_pw(rx_channel_data);
     }
 
-    /* Read IMU */
-    uint8_t imu_data_valid = read_imu_data(&imu_data);
-    if (imu_data_valid) {
-        madgwick_imu(
-            MADGWICK_LEARNING_RATE,
-            imu_data.ax, imu_data.ay, imu_data.az,
-            imu_data.gx, imu_data.gy, imu_data.gz,
-            imu_data.ts_delta,
-            &quat
-        );
-        int16_t qw = quat.w * 1000;
-        int16_t qx = quat.x * 1000;
-        int16_t qy = quat.y * 1000;
-        int16_t qz = quat.z * 1000;
+    /* Update orientation */
+    uint8_t orientation_update = calc_orientation();
+    if (orientation_update) {
+        /* PRINT QUATERNION FOR DEBUG */
+        int16_t qw = q_imu.w * 1000;
+        int16_t qx = q_imu.x * 1000;
+        int16_t qy = q_imu.y * 1000;
+        int16_t qz = q_imu.z * 1000;
 
         uint8_t tx_buf[256];
         uint8_t tx_buf_len = snprintf(
