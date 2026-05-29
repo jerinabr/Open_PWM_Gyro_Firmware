@@ -3,10 +3,10 @@
 #include "hw_config.h"
 #include "imu.h"
 #include "led.h"
-#include "quat.h"
+#include "math3d.h"
+#include "pwm.h"
 #include "receiver.h"
 #include "systick.h"
-#include "pwm.h"
 #include "stm32g431xx.h"
 #include "stm32g4xx.h"
 #include "usbd_cdc_if.h"
@@ -19,17 +19,29 @@
 /* FOR DEBUG */
 uint32_t t0 = 0;
 
-/* Data structures */
+/* Data read from the onboard IMU */
 struct IMU_Data imu_data;
+
+/* Quaternion rotation from IMU data sensor fusion */
 struct Quaternion q_imu = {
     .w = 1,
     .x = 0,
     .y = 0,
     .z = 0
 };
-struct Quaternion q_ang_vel = {0};
 
-/* RX data */
+/* Vector representation of angular velocity */
+struct Vector3 w = {0};
+
+/* Quaternion rotation of gyro with respect to aircraft */
+struct Quaternion q_init = {
+    .w = 1,
+    .x = 0,
+    .y = 0,
+    .z = 0
+};
+
+/* Channel data in microseconds from receiver serial */
 uint16_t rx_channel_data[MAX_RX_CHANNELS];
 
 /***********************************************************************
@@ -77,10 +89,10 @@ uint8_t calc_orientation(void) {
         return 0;
     }
 
-    /* Update the angular velocity quaternion */
-    q_ang_vel.x = imu_data.gx;
-    q_ang_vel.y = imu_data.gy;
-    q_ang_vel.z = imu_data.gz;
+    /* Update the angular velocity vector */
+    w.x = imu_data.gx;
+    w.y = imu_data.gy;
+    w.z = imu_data.gz;
     
     /* Update the orientation quaternion using the Madgwick filter */
     madgwick_imu(
@@ -138,7 +150,7 @@ void app_loop(void) {
     /* FOR DEBUG */
     if (rx_data_valid) {
         /* Print RX outputs to USB */
-        uint8_t tx_buf[64];
+        /* uint8_t tx_buf[64];
         uint8_t tx_buf_len = snprintf(
             (char*) tx_buf, 64,
             "Ch1: %hu\tCh2: %hu\tCh3: %hu\tCh4: %hu\r\n",
@@ -147,7 +159,7 @@ void app_loop(void) {
             rx_channel_data[2],
             rx_channel_data[3]
         );
-        CDC_Transmit_FS(tx_buf, tx_buf_len);
+        CDC_Transmit_FS(tx_buf, tx_buf_len); */
 
         /* Pass RX outputs straight to channel outputs */
         update_pwm_pw(rx_channel_data);
@@ -157,20 +169,27 @@ void app_loop(void) {
     uint8_t orientation_update = calc_orientation();
     if (orientation_update) {
         /* PRINT QUATERNION FOR DEBUG */
-        int16_t qw = q_imu.w * 1000;
-        int16_t qx = q_imu.x * 1000;
-        int16_t qy = q_imu.y * 1000;
-        int16_t qz = q_imu.z * 1000;
+        // int16_t qw = q_imu.w * 1000;
+        // int16_t qx = q_imu.x * 1000;
+        // int16_t qy = q_imu.y * 1000;
+        // int16_t qz = q_imu.z * 1000;
+
+        struct Vector3 w_rotated = rotate_vector(q_init, w);
+        int16_t wx = w_rotated.x * 1000;
+        int16_t wy = w_rotated.y * 1000;
+        int16_t wz = w_rotated.z * 1000;
 
         uint8_t tx_buf[256];
         uint8_t tx_buf_len = snprintf(
             (char*) tx_buf, 256,
-            /* "%hd,%hd,%hd,%hd,%hd,%hd,%hu\r\n",
-            imu_data.ax, imu_data.ay, imu_data.az,
-            imu_data.gx, imu_data.gy, imu_data.gz,
-            imu_data.ts_delta */
-            "%hd,%hd,%hd,%hd\r\n",
-            qw, qx, qy, qz
+            // "%hd,%hd,%hd,%hd,%hd,%hd,%hu\r\n",
+            // imu_data.ax, imu_data.ay, imu_data.az,
+            // imu_data.gx, imu_data.gy, imu_data.gz,
+            // imu_data.ts_delta
+            // "%hd,%hd,%hd,%hd\r\n",
+            // qw, qx, qy, qz
+            "%hd,%hd,%hd\r\n",
+            wx, wy, wz
         );
         CDC_Transmit_FS(tx_buf, tx_buf_len);
     }

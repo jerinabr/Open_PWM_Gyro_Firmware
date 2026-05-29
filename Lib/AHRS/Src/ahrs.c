@@ -1,5 +1,5 @@
 #include "ahrs.h"
-#include "quat.h"
+#include "math3d.h"
 #include <math.h>
 
 /*!
@@ -106,5 +106,5 @@ void madgwick_imu(
     quat->z += (SEqDot_omega_4 - (beta * SEqHatDot_4)) * deltat;
 
     /* Normalise quaternion */
-    quat_norm(quat);
+    *quat = quat_norm(*quat);
 }

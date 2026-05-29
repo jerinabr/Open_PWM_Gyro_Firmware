@@ -54,11 +54,11 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     "Lib/IMU/Src/spi1.c"
     # LED library
     "Lib/LED/Src/led.c"
+    # 3D math library
+    "Lib/Math3D/Src/math3d.c"
     # PWM library
     "Lib/PWM/Src/pwm.c"
     "Lib/PWM/Src/timers.c"
-    # Quaternion library
-    "Lib/Quat/Src/quat.c"
     # Receiver library
     "Lib/Receiver/Src/ibus.c"
     "Lib/Receiver/Src/receiver.c"
@@ -74,8 +74,8 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     "Lib/Common/Inc"
     "Lib/IMU/Inc"
     "Lib/LED/Inc"
+    "Lib/Math3D/Inc"
     "Lib/PWM/Inc"
-    "Lib/Quat/Inc"
     "Lib/Receiver/Inc"
     "Lib/SysTick/Inc"
 )

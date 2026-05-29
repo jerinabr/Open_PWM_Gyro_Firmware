@@ -10,7 +10,7 @@
 #ifndef AHRS_H
 #define AHRS_H
 
-#include "quat.h"
+#include "math3d.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
