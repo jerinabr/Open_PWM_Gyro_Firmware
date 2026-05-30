@@ -1,6 +1,12 @@
 #include "math3d.h"
 #include <math.h>
 
+const float DEG_TO_RAD = 3.141592653589793 / 180.0;
+
+/***********************************************************************
+-- QUATERNION FUNCTIONS --
+***********************************************************************/
+
 /*!
     @brief Normalize a quaternion. Operation: q1 = q0 / |q0|
     @param q0 Input quaternion
@@ -54,9 +60,11 @@ struct Quaternion quat_inv(struct Quaternion q0) {
 
 /*!
     @brief Multiply two quaternions. Operation: q2 = q0 * q1
-    @param q0 Quaternion that is being multiplied
-    @param q1 Quaternion that is multiplying
-    @return Product of q1 and q0
+    @param q0 Quaternion on the left of the multiplication
+    @param q1 Quaternion on the right of the multiplication
+    @return Product of q0 and q1
+    @details Quaternion multiplication is NOT commutative so be careful about
+    assigning q0 and q1
 */
 struct Quaternion quat_mult(struct Quaternion q0, struct Quaternion q1) {
     /* Calculate q0 * q1 */
@@ -73,6 +81,10 @@ struct Quaternion quat_mult(struct Quaternion q0, struct Quaternion q1) {
 
     return q0;
 }
+
+/***********************************************************************
+-- VECTOR3 FUNCTIONS --
+***********************************************************************/
 
 /*!
     @brief Calculate the dot product of 2 vectors
@@ -99,6 +111,53 @@ struct Vector3 vector_cross(struct Vector3 v0, struct Vector3 v1) {
     return cross;
 }
 
+/***********************************************************************
+-- ROTATION MATRIX FUNCTIONS --
+***********************************************************************/
+
+/*!
+    @brief Convert Euler angles to a 3x3 rotation matrix
+    @param wx Rotation angle around world-space X-axis
+    @param wy Rotation angle around world-space Y-axis
+    @param wz Rotation angle around world-space Z-axis
+    @param r0 3x3 array of floats that will contain the calculated rotation
+    matrix
+    @details The conversion done here is in the order XYZ extrinsic because that
+    is what's typically used for aerospace. This is the same as ZYX intrinsic.
+
+    This is quite an expensive operation and only really recommended for
+    precomputing rotation matrices to be applied at runtime.
+*/
+void euler_to_rot_matrix(float wx, float wy, float wz, float r0[3][3]) {
+    /* Convert degrees to radians for trig functions */
+    float rad_x = wx * DEG_TO_RAD;
+    float rad_y = wy * DEG_TO_RAD;
+    float rad_z = wz * DEG_TO_RAD;
+
+    /* Precompute trig values */
+    float sx = sinf(rad_x);
+    float sy = sinf(rad_y);
+    float sz = sinf(rad_z);
+    float cx = cosf(rad_x);
+    float cy = cosf(rad_y);
+    float cz = cosf(rad_z);
+
+    /* Update rotation matrix */
+    r0[0][0] = cz * cy;
+    r0[0][1] = cz * sy * sx - cx * sz;
+    r0[0][2] = sz * sx + cz * cx * sy;
+    r0[1][0] = cy * sz;
+    r0[1][1] = cz * cx + sz * sy * sx;
+    r0[1][2] = cx * sz * sy - cz * sx;
+    r0[2][0] = -sy;
+    r0[2][1] = cy * sx;
+    r0[2][2] = cy * cx;
+}
+
+/***********************************************************************
+-- ROTATION FUNCTIONS --
+***********************************************************************/
+
 /*!
     @brief Rotate a vector3 by q0. Operation: v1 = q0 * v0 * q0*
     @param q0 Unit quaternion that will apply the rotation
@@ -107,7 +166,7 @@ struct Vector3 vector_cross(struct Vector3 v0, struct Vector3 v1) {
     @details The optimized math used here was taken from this blog:
     https://blog.molecular-matters.com/2013/05/24/a-faster-quaternion-vector-multiplication/
 */
-struct Vector3 rotate_vector(struct Quaternion q0, struct Vector3 v0) {
+struct Vector3 quat_rotate_vector(struct Quaternion q0, struct Vector3 v0) {
     /* Extract vector component of q0 */
     struct Vector3 q_vec = {
         .x = q0.x,
@@ -131,4 +190,26 @@ struct Vector3 rotate_vector(struct Quaternion q0, struct Vector3 v0) {
         .z = v0.z + q0.w * t.z + t2.z
     };
     return v_prime;
+}
+
+/*!
+    @brief Apply a rotation matrix to a vector
+    @param r0 3x3 rotation matrix
+    @param v0 Vector to be rotated
+    @return Rotated vector3
+    @details Rotating a vector by a rotation matrix uses only 9 multiplications
+    and 6 additions compared to the 18 multiplications and 6 additions needed
+    for the optimized quaternion rotation.
+
+    It's preferable to use a rotation matrix if the rotation being applied is
+    precomputed otherwise converting from a quaternion or euler angles to a
+    rotation matrix is quite expensive.
+*/
+struct Vector3 matrix_rotate_vector(float r0[3][3], struct Vector3 v0) {
+    struct Vector3 result = {
+        .x = r0[0][0] * v0.x + r0[0][1] * v0.y + r0[0][2] * v0.z,
+        .y = r0[1][0] * v0.x + r0[1][1] * v0.y + r0[1][2] * v0.z,
+        .z = r0[2][0] * v0.x + r0[2][1] * v0.y + r0[2][2] * v0.z
+    };
+    return result;
 }

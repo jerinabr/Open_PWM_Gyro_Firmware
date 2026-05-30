@@ -33,13 +33,11 @@ struct Quaternion q_imu = {
 /* Vector representation of angular velocity */
 struct Vector3 w = {0};
 
-/* Quaternion rotation of gyro with respect to aircraft */
-struct Quaternion q_init = {
-    .w = 1,
-    .x = 0,
-    .y = 0,
-    .z = 0
-};
+/* Rotation of gyro with respect to aircraft */
+float x_ang_init = 90;
+float y_ang_init = 0;
+float z_ang_init = 0;
+float r_init[3][3];
 
 /* Channel data in microseconds from receiver serial */
 uint16_t rx_channel_data[MAX_RX_CHANNELS];
@@ -106,6 +104,58 @@ uint8_t calc_orientation(void) {
     return 1;
 }
 
+/*!
+    @brief Print receiver outputs over USB for debug
+*/
+void print_rx(void) {
+    uint8_t tx_buf[64];
+    uint8_t tx_buf_len = snprintf(
+        (char*) tx_buf, 64,
+        "Ch1: %hu\tCh2: %hu\tCh3: %hu\tCh4: %hu\r\n",
+        rx_channel_data[0],
+        rx_channel_data[1],
+        rx_channel_data[2],
+        rx_channel_data[3]
+    );
+    CDC_Transmit_FS(tx_buf, tx_buf_len);
+}
+
+/*!
+    @brief Print gyro output over USB for debug
+*/
+void print_gyro(void) {
+    struct Vector3 w_rotated = matrix_rotate_vector(r_init, w);
+    int16_t wx = w_rotated.x * 1000;
+    int16_t wy = w_rotated.y * 1000;
+    int16_t wz = w_rotated.z * 1000;
+
+    uint8_t tx_buf[256];
+    uint8_t tx_buf_len = snprintf(
+        (char*) tx_buf, 256,
+        "%hd,%hd,%hd\r\n",
+        wx, wy, wz
+    );
+    CDC_Transmit_FS(tx_buf, tx_buf_len);
+}
+
+/*!
+    @brief Print quaternion output over USB for debug
+*/
+void print_quat(void) {
+    int16_t qw = q_imu.w * 1000;
+    int16_t qx = q_imu.x * 1000;
+    int16_t qy = q_imu.y * 1000;
+    int16_t qz = q_imu.z * 1000;
+
+    uint8_t tx_buf[256];
+    uint8_t tx_buf_len = snprintf(
+        (char*) tx_buf, 256,
+        "%hd,%hd,%hd,%hd\r\n",
+        qw, qx, qy, qz
+    );
+    CDC_Transmit_FS(tx_buf, tx_buf_len);
+}
+
 /***********************************************************************
 -- PUBLIC FUNCTIONS --
 ***********************************************************************/
@@ -137,6 +187,14 @@ void app_config(void) {
     
     /* FOR DEBUG */
     t0 = get_ms();
+
+    /* Convert gyro orientation to rotation matrix */
+    euler_to_rot_matrix(
+        x_ang_init,
+        y_ang_init,
+        z_ang_init,
+        r_init
+    );
 }
 
 /*!
@@ -144,54 +202,16 @@ void app_config(void) {
     @details Any application code in this function will loop infinitely
 */
 void app_loop(void) {
-    /* Process peripheral data */
-    uint8_t rx_data_valid = read_receiver(rx_channel_data);
-
-    /* FOR DEBUG */
-    if (rx_data_valid) {
-        /* Print RX outputs to USB */
-        /* uint8_t tx_buf[64];
-        uint8_t tx_buf_len = snprintf(
-            (char*) tx_buf, 64,
-            "Ch1: %hu\tCh2: %hu\tCh3: %hu\tCh4: %hu\r\n",
-            rx_channel_data[0],
-            rx_channel_data[1],
-            rx_channel_data[2],
-            rx_channel_data[3]
-        );
-        CDC_Transmit_FS(tx_buf, tx_buf_len); */
-
-        /* Pass RX outputs straight to channel outputs */
-        update_pwm_pw(rx_channel_data);
-    }
-
     /* Update orientation */
     uint8_t orientation_update = calc_orientation();
     if (orientation_update) {
-        /* PRINT QUATERNION FOR DEBUG */
-        // int16_t qw = q_imu.w * 1000;
-        // int16_t qx = q_imu.x * 1000;
-        // int16_t qy = q_imu.y * 1000;
-        // int16_t qz = q_imu.z * 1000;
+        print_gyro();
+    }
 
-        struct Vector3 w_rotated = rotate_vector(q_init, w);
-        int16_t wx = w_rotated.x * 1000;
-        int16_t wy = w_rotated.y * 1000;
-        int16_t wz = w_rotated.z * 1000;
-
-        uint8_t tx_buf[256];
-        uint8_t tx_buf_len = snprintf(
-            (char*) tx_buf, 256,
-            // "%hd,%hd,%hd,%hd,%hd,%hd,%hu\r\n",
-            // imu_data.ax, imu_data.ay, imu_data.az,
-            // imu_data.gx, imu_data.gy, imu_data.gz,
-            // imu_data.ts_delta
-            // "%hd,%hd,%hd,%hd\r\n",
-            // qw, qx, qy, qz
-            "%hd,%hd,%hd\r\n",
-            wx, wy, wz
-        );
-        CDC_Transmit_FS(tx_buf, tx_buf_len);
+    /* Read receiver */
+    uint8_t rx_data_valid = read_receiver(rx_channel_data);
+    if (rx_data_valid) {
+        update_pwm_pw(rx_channel_data);
     }
 
     /*

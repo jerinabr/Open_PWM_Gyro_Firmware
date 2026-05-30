@@ -11,7 +11,7 @@ extern "C" {
 #endif
 
 /***********************************************************************
--- STRUCTS --
+-- ROTATION OBJECTS --
 ***********************************************************************/
 
 struct Quaternion {
@@ -31,15 +31,22 @@ struct Vector3 {
 -- FUNCTIONS --
 ***********************************************************************/
 
+/* Quaternion operations */
 struct Quaternion quat_norm(struct Quaternion q0);
 struct Quaternion quat_conj(struct Quaternion q0);
 struct Quaternion quat_inv(struct Quaternion q0);
 struct Quaternion quat_mult(struct Quaternion q0, struct Quaternion q1);
 
+/* Vector3 operations */
 float vector_dot(struct Vector3 v0, struct Vector3 v1);
 struct Vector3 vector_cross(struct Vector3 v0, struct Vector3 v1);
 
-struct Vector3 rotate_vector(struct Quaternion q0, struct Vector3 v0);
+/* Rotation matrix operations */
+void euler_to_rot_matrix(float wx, float wy, float wz, float r0[3][3]);
+
+/* Rotation operations */
+struct Vector3 quat_rotate_vector(struct Quaternion q0, struct Vector3 v0);
+struct Vector3 matrix_rotate_vector(float r0[3][3], struct Vector3 v0);
 
 #ifdef __cplusplus
 }
