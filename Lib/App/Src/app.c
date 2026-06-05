@@ -1,11 +1,13 @@
 #include "ahrs.h"
 #include "app.h"
 #include "hw_config.h"
+#include "sys_config.h"
 #include "imu.h"
 #include "led.h"
 #include "math3d.h"
 #include "pwm.h"
 #include "receiver.h"
+#include "stabilize.h"
 #include "systick.h"
 #include "stm32g431xx.h"
 #include "stm32g4xx.h"
@@ -31,7 +33,7 @@ struct Quaternion q_imu = {
 };
 
 /* Vector representation of angular velocity */
-struct Vector3 w = {0};
+struct Vector3 w_imu = {0};
 
 /* Rotation of gyro with respect to aircraft */
 float x_ang_init = 90;
@@ -41,6 +43,24 @@ float r_init[3][3];
 
 /* Channel data in microseconds from receiver serial */
 uint16_t rx_channel_data[MAX_RX_CHANNELS];
+uint8_t roll_channel = ROLL_CHANNEL;
+uint8_t pitch_channel = PITCH_CHANNEL;
+uint8_t yaw_channel = YAW_CHANNEL;
+uint8_t gain_channel = GAIN_CHANNEL;
+uint8_t mode_select_channel = MODE_CHANNEL;
+uint16_t channel_center = CHANNEL_CENTER;
+uint16_t channel_max_throw = CHANNEL_MAX_THROW;
+uint16_t gain_channel_min = GAIN_CHANNEL_MIN;
+uint16_t gain_channel_width = GAIN_CHANNEL_WIDTH;
+
+/* Stabilization context */
+struct Stabilization_Context st_ctx;
+
+/* Last control update */
+uint32_t last_update = 0;
+
+/* PWM outputs */
+uint16_t pwm_outputs[NUM_OUTPUT_CHANNELS];
 
 /***********************************************************************
 -- PRIVATE FUNCTIONS --
@@ -80,17 +100,29 @@ static void enable_peripheral_clocks(void) {
     @brief Calculate orientation of the IMU
     @returns 1 if orientation updated, 0 if not
 */
-uint8_t calc_orientation(void) {
+static uint8_t calc_orientation(void) {
     /* Read IMU */
     uint8_t imu_data_valid = read_imu_data(&imu_data);
     if (!imu_data_valid) {
         return 0;
     }
 
-    /* Update the angular velocity vector */
-    w.x = imu_data.gx;
-    w.y = imu_data.gy;
-    w.z = imu_data.gz;
+    /*
+        Update the angular velocity vector
+
+        The y-axis is negated here because for some reason the ICM-42605
+        coordinate and rotation frame doesn't match the standard ones used for
+        aircraft.
+
+        From this       To this
+            +Z            +Z
+            |      ->     |
+           / \           / \
+         +Y  +X        +X  +Y
+    */
+    w_imu.x = imu_data.gx;
+    w_imu.y = -imu_data.gy;
+    w_imu.z = imu_data.gz;
     
     /* Update the orientation quaternion using the Madgwick filter */
     madgwick_imu(
@@ -105,9 +137,57 @@ uint8_t calc_orientation(void) {
 }
 
 /*!
+    @brief Normalize and map the channel data from the receiver to control
+    inputs
+*/
+static void map_rx_to_control_inputs(void) {
+    /* Remove control input offset */
+    float roll = (float) (rx_channel_data[roll_channel] - channel_center);
+    float pitch = (float) (rx_channel_data[pitch_channel] - channel_center);
+    float yaw = (float) (rx_channel_data[yaw_channel] - channel_center);
+    float gain = (float) (rx_channel_data[gain_channel] - gain_channel_min);
+
+    /* Normalize the control inputs */
+    roll /= (float) channel_max_throw;
+    pitch /= (float) channel_max_throw;
+    yaw /= (float) channel_max_throw;
+    gain /= (float) gain_channel_width;
+
+    st_ctx.input.control_input.roll = roll;
+    st_ctx.input.control_input.pitch = pitch;
+    st_ctx.input.control_input.yaw = yaw;
+    st_ctx.input.global_gain = gain;
+}
+
+/*!
+    @brief Convert and map normalized control outputs to respective output PWM
+    channels
+*/
+static void map_control_outputs_to_pwm(void) {
+    /* Map control outputs to respective channels */
+    float roll = (float) channel_max_throw * st_ctx.control_output.roll;
+    float pitch = (float) channel_max_throw * st_ctx.control_output.pitch;
+    float yaw = (float) channel_max_throw * st_ctx.control_output.yaw;
+
+    roll += (float) channel_center;
+    pitch += (float) channel_center;
+    yaw += (float) channel_center;
+
+    /* Map rx inputs to pwm outputs initially */
+    for (int i = 0; i < NUM_OUTPUT_CHANNELS; i++) {
+        pwm_outputs[i] = rx_channel_data[i];
+    }
+
+    /* Override control pwm outputs with stabilized values */
+    pwm_outputs[AILERON1_CHANNEL] = (uint16_t) roll;
+    pwm_outputs[ELEVATOR1_CHANNEL] = (uint16_t) pitch;
+    pwm_outputs[RUDDER1_CHANNEL] = (uint16_t) yaw;
+}
+
+/*!
     @brief Print receiver outputs over USB for debug
 */
-void print_rx(void) {
+static void print_rx(void) {
     uint8_t tx_buf[64];
     uint8_t tx_buf_len = snprintf(
         (char*) tx_buf, 64,
@@ -123,8 +203,8 @@ void print_rx(void) {
 /*!
     @brief Print gyro output over USB for debug
 */
-void print_gyro(void) {
-    struct Vector3 w_rotated = matrix_rotate_vector(r_init, w);
+static void print_gyro(void) {
+    struct Vector3 w_rotated = matrix_rotate_vector(r_init, w_imu);
     int16_t wx = w_rotated.x * 1000;
     int16_t wy = w_rotated.y * 1000;
     int16_t wz = w_rotated.z * 1000;
@@ -141,7 +221,7 @@ void print_gyro(void) {
 /*!
     @brief Print quaternion output over USB for debug
 */
-void print_quat(void) {
+static void print_quat(void) {
     int16_t qw = q_imu.w * 1000;
     int16_t qx = q_imu.x * 1000;
     int16_t qy = q_imu.y * 1000;
@@ -165,7 +245,7 @@ void print_quat(void) {
     @details Any application configuration that happens before the main loop
     should be placed here
 */
-void app_config(void) {
+void app_setup(void) {
     enable_peripheral_clocks();
 
     /* Initialize peripherals */
@@ -195,6 +275,23 @@ void app_config(void) {
         z_ang_init,
         r_init
     );
+
+    /* Configure stabilization context */
+    st_ctx.config.control_limits.roll = ROLL_CONTROL_LIMIT;
+    st_ctx.config.control_limits.pitch = PITCH_CONTROL_LIMIT;
+    st_ctx.config.control_limits.yaw = YAW_CONTROL_LIMIT;
+    st_ctx.config.ang_limits.roll = ROLL_ANG_LIMIT;
+    st_ctx.config.ang_limits.pitch = PITCH_ANG_LIMIT;
+    st_ctx.config.gains.roll = ROLL_GAIN;
+    st_ctx.config.gains.pitch = PITCH_GAIN;
+    st_ctx.config.gains.yaw = YAW_GAIN;
+
+    /* For now default the mode to stabilize. This will be changed later */
+    st_ctx.input.mode = GYRO_MODE_STABILIZE;
+    set_stabilization_mode(&st_ctx);
+
+    /* Update the last update time */
+    last_update = get_ms();
 }
 
 /*!
@@ -205,13 +302,22 @@ void app_loop(void) {
     /* Update orientation */
     uint8_t orientation_update = calc_orientation();
     if (orientation_update) {
-        print_gyro();
+        // print_gyro();
+        st_ctx.input.q = q_imu;
+        st_ctx.input.w = w_imu;
     }
 
     /* Read receiver */
     uint8_t rx_data_valid = read_receiver(rx_channel_data);
     if (rx_data_valid) {
-        update_pwm_pw(rx_channel_data);
+        map_rx_to_control_inputs();
+    }
+
+    /* Update stabilization context at a rate of 50 Hz */
+    if (get_ms() - last_update < 20) {
+        apply_stabilization(&st_ctx);
+        map_control_outputs_to_pwm();
+        update_pwm_pw(pwm_outputs);
     }
 
     /*

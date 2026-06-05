@@ -61,5 +61,5 @@ This is for two main reasons:
   - [ ] Stabilize
   - [ ] Hold
   - [ ] Level
-  - [ ] Angle limit
+  - [ ] Limit
 - [ ] Think of more stuff to implement

@@ -42,9 +42,9 @@
     - 2000 deg/s gyro FSR
     - 1 us timestamp resolution
 */
-const float ACCEL_SCALE = 9.80665 / 2048.0;
-const float GYRO_SCALE = (3.141592653589793 / 180.0) / 16.4;
-const float TS_SCALE = 1 / 1e6f;
+const float ACCEL_SCALE = 9.80665f / 2048.0f;
+const float GYRO_SCALE = 3.141592653589793f / 180.0f / 16.4f;
+const float TS_SCALE = 1.0f / 1e6f;
 
 /***********************************************************************
 -- PRIVATE FUNCTIONS --

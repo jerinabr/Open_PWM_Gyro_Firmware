@@ -89,7 +89,7 @@ int main(void)
   MX_GPIO_Init();
   MX_USB_Device_Init();
   /* USER CODE BEGIN 2 */
-  app_config();
+  app_setup();
   /* USER CODE END 2 */
 
   /* Infinite loop */

@@ -63,6 +63,8 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     "Lib/Receiver/Src/ibus.c"
     "Lib/Receiver/Src/receiver.c"
     "Lib/Receiver/Src/usart1.c"
+    # Stabilization library
+    "Lib/Stabilize/Src/stabilize.c"
     # SysTick library
     "Lib/SysTick/Src/systick.c"
 )
@@ -77,6 +79,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     "Lib/Math3D/Inc"
     "Lib/PWM/Inc"
     "Lib/Receiver/Inc"
+    "Lib/Stabilize/Inc"
     "Lib/SysTick/Inc"
 )
 

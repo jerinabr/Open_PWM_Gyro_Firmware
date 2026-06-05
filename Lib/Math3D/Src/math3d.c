@@ -1,7 +1,7 @@
 #include "math3d.h"
 #include <math.h>
 
-const float DEG_TO_RAD = 3.141592653589793 / 180.0;
+const float DEG_TO_RAD = 3.141592653589793f / 180.0f;
 
 /***********************************************************************
 -- QUATERNION FUNCTIONS --
@@ -176,9 +176,9 @@ struct Vector3 quat_rotate_vector(struct Quaternion q0, struct Vector3 v0) {
 
     /* Calculate cross product of quaternion vector and v0 */
     struct Vector3 t = vector_cross(q_vec, v0);
-    t.x *= 2;
-    t.y *= 2;
-    t.z *= 2;
+    t.x *= 2.0f;
+    t.y *= 2.0f;
+    t.z *= 2.0f;
 
     /* Calculate cross product of quaternion vector and t */
     struct Vector3 t2 = vector_cross(q_vec, t);
