@@ -17,27 +17,42 @@
 #include <stdlib.h>
 #include <sys/signal.h>
 
-#define MADGWICK_LEARNING_RATE 0.1
+/***********************************************************************
+-- MACROS --
+***********************************************************************/
 
-/* FOR DEBUG */
-uint32_t t0 = 0;
+/* Mode select switch position boundaries */
+#define SWITCH_POS_1_2_BOUNDARY 1333
+#define SWITCH_POS_2_3_BOUNDARY 1666
+
+/***********************************************************************
+-- CONFIGURATION VARIABLES --
+***********************************************************************/
 
 /* Rotation of gyro with respect to aircraft */
 float x_ang_init = 0;
 float y_ang_init = 0;
 float z_ang_init = 0;
 
-/* Channel data in microseconds from receiver serial */
-uint16_t rx_channel_data[MAX_RX_CHANNELS];
+/* Channel to control mapping */
 uint8_t roll_channel = ROLL_CHANNEL;
 uint8_t pitch_channel = PITCH_CHANNEL;
 uint8_t yaw_channel = YAW_CHANNEL;
 uint8_t gain_channel = GAIN_CHANNEL;
 uint8_t mode_select_channel = MODE_CHANNEL;
+uint16_t switch_pos_1_mode = SWITCH_POS_1_MODE;
+uint16_t switch_pos_2_mode = SWITCH_POS_2_MODE;
+uint16_t switch_pos_3_mode = SWITCH_POS_3_MODE;
+
+/* Channel characteristics */
 uint16_t channel_center = CHANNEL_CENTER;
 uint16_t channel_max_throw = CHANNEL_MAX_THROW;
 uint16_t gain_channel_min = GAIN_CHANNEL_MIN;
 uint16_t gain_channel_width = GAIN_CHANNEL_WIDTH;
+
+/***********************************************************************
+-- RUNTIME VARIABLES --
+***********************************************************************/
 
 /* Data read from the onboard IMU */
 struct IMU_Data imu_data;
@@ -56,11 +71,20 @@ struct Vector3 w_imu = {0};
 /* Stabilization context */
 struct Stabilization_Context st_ctx;
 
+/* Channel data in microseconds from receiver serial */
+uint16_t rx_channel_data[MAX_RX_CHANNELS];
+
 /* PWM outputs */
 uint16_t pwm_outputs[NUM_OUTPUT_CHANNELS];
 
 /* Last control update */
 uint32_t last_update = 0;
+
+/* Previous stabilization mode */
+uint8_t prev_stabilization_mode = GYRO_MODE_OFF;
+
+/* FOR DEBUG */
+uint32_t t0 = 0;
 
 /***********************************************************************
 -- PRIVATE FUNCTIONS --
@@ -97,16 +121,9 @@ static void enable_peripheral_clocks(void) {
 }
 
 /*!
-    @brief Calculate orientation of the IMU
-    @returns 1 if orientation updated, 0 if not
+    @brief Calculate and update the orientation of the IMU
 */
-static uint8_t calc_orientation(void) {
-    /* Read IMU */
-    uint8_t imu_data_valid = read_imu_data(&imu_data);
-    if (!imu_data_valid) {
-        return 0;
-    }
-
+static void calc_orientation(void) {
     /*
         Update the angular velocity vector
 
@@ -126,14 +143,15 @@ static uint8_t calc_orientation(void) {
     
     /* Update the orientation quaternion using the Madgwick filter */
     madgwick_imu(
-        MADGWICK_LEARNING_RATE,
         imu_data.ax, imu_data.ay, imu_data.az,
         imu_data.gx, imu_data.gy, imu_data.gz,
         imu_data.ts_delta,
         &q_imu
     );
 
-    return 1;
+    /* Assign attitude to input */
+    st_ctx.input.q = q_imu;
+    st_ctx.input.w = w_imu;
 }
 
 /*!
@@ -158,6 +176,17 @@ static void map_rx_to_control_inputs(void) {
     st_ctx.input.control_input.pitch = pitch;
     st_ctx.input.control_input.yaw = yaw;
     st_ctx.input.global_gain = gain;
+
+    /* Select mode based on switch position */
+    if (rx_channel_data[mode_select_channel] < SWITCH_POS_1_2_BOUNDARY) {
+        st_ctx.input.mode = switch_pos_1_mode;
+    }
+    else if (rx_channel_data[mode_select_channel] < SWITCH_POS_2_3_BOUNDARY) {
+        st_ctx.input.mode = switch_pos_2_mode;
+    }
+    else {
+        st_ctx.input.mode = switch_pos_3_mode;
+    }
 }
 
 /*!
@@ -286,8 +315,8 @@ void app_setup(void) {
     st_ctx.config.reverse.pitch = PITCH_ADJ_REVERSE;
     st_ctx.config.reverse.yaw = YAW_ADJ_REVERSE;
 
-    /* Default the non-control inputs for now. This will be changed later. */
-    st_ctx.input.mode = GYRO_MODE_STABILIZE;
+    /* Set the stabilization mode to off by default */
+    st_ctx.input.mode = prev_stabilization_mode;
     set_stabilization_mode(&st_ctx);
 
     /* Set the last update time */
@@ -299,12 +328,11 @@ void app_setup(void) {
     @details Any application code in this function will loop infinitely
 */
 void app_loop(void) {
-    /* Update orientation */
-    uint8_t orientation_update = calc_orientation();
-    if (orientation_update) {
-        // print_gyro();
-        st_ctx.input.q = q_imu;
-        st_ctx.input.w = w_imu;
+
+    /* Read IMU */
+    uint8_t imu_data_valid = read_imu_data(&imu_data);
+    if (imu_data_valid) {
+        calc_orientation();
     }
 
     /* Read receiver */
@@ -313,9 +341,15 @@ void app_loop(void) {
         map_rx_to_control_inputs();
     }
 
+    /* Update the stabilization mode if it changed */
+    if (st_ctx.input.mode != prev_stabilization_mode) {
+        prev_stabilization_mode = st_ctx.input.mode;
+        set_stabilization_mode(&st_ctx);
+    }
+
     /* Update stabilization and outputs at a rate of 50 Hz */
     uint32_t current_ms = get_ms();
-    if (current_ms - last_update >= 20) {
+    if (current_ms - last_update >= OUTPUT_UPDATE_PERIOD) {
         last_update = current_ms;
         apply_stabilization(&st_ctx);
         map_control_outputs_to_pwm();

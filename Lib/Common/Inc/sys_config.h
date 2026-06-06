@@ -9,6 +9,9 @@
 extern "C" {
 #endif
 
+/* Stabilization update period in milliseconds */
+#define OUTPUT_UPDATE_PERIOD 20
+
 /* Normalized control limits */
 #define ROLL_CONTROL_LIMIT  1.0f
 #define PITCH_CONTROL_LIMIT 1.0f
@@ -56,6 +59,11 @@ extern "C" {
 #define FLAPERON2_CHANNEL   NUM_OUTPUT_CHANNELS
 #define CANARD1_CHANNEL     NUM_OUTPUT_CHANNELS
 #define CANARD2_CHANNEL     NUM_OUTPUT_CHANNELS
+
+/* Mode corresponding to each position of a 3-way switch input */
+#define SWITCH_POS_1_MODE   GYRO_MODE_OFF
+#define SWITCH_POS_2_MODE   GYRO_MODE_STABILIZE
+#define SWITCH_POS_3_MODE   GYRO_MODE_STABILIZE
 
 #ifdef __cplusplus
 }

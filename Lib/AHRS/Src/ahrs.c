@@ -2,10 +2,11 @@
 #include "math3d.h"
 #include <math.h>
 
+#define LEARNING_RATE 0.1
+
 /*!
     @brief Use the madgwick filter to compute the quaternion orientation of the
     IMU
-    @param beta Learning rate of the gradient descent algorithm
     @param ax X component of the acceleration data (g)
     @param ay Y component of the acceleration data (g)
     @param az Z component of the acceleration data (g)
@@ -28,7 +29,6 @@
     the STM32G431 has a single-precision FPU.
 */
 void madgwick_imu(
-    float beta,
     float ax, float ay, float az,
     float gx, float gy, float gz,
     float deltat,
@@ -100,10 +100,10 @@ void madgwick_imu(
     SEqDot_omega_4 = halfSEq_1 * gz + halfSEq_2 * gy - halfSEq_3 * gx;
 
     /* Compute then integrate the estimated quaternion derivative */
-    quat->w += (SEqDot_omega_1 - (beta * SEqHatDot_1)) * deltat;
-    quat->x += (SEqDot_omega_2 - (beta * SEqHatDot_2)) * deltat;
-    quat->y += (SEqDot_omega_3 - (beta * SEqHatDot_3)) * deltat;
-    quat->z += (SEqDot_omega_4 - (beta * SEqHatDot_4)) * deltat;
+    quat->w += (SEqDot_omega_1 - (LEARNING_RATE * SEqHatDot_1)) * deltat;
+    quat->x += (SEqDot_omega_2 - (LEARNING_RATE * SEqHatDot_2)) * deltat;
+    quat->y += (SEqDot_omega_3 - (LEARNING_RATE * SEqHatDot_3)) * deltat;
+    quat->z += (SEqDot_omega_4 - (LEARNING_RATE * SEqHatDot_4)) * deltat;
 
     /* Normalise quaternion */
     *quat = quat_norm(*quat);

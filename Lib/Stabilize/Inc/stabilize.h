@@ -71,9 +71,9 @@ struct Stabilization_Context {
             float pitch;
         } ang_limits;
 
-        /* Correction gains for stabilization. Each gain should be a value > 0.
-            Individual axis gains can be configured and all gains will be
-            multiplied by a global gain. */
+        /* Correction gains for stabilization. Each axis gain should be a value
+            greater than 0. Individual axis gains can be configured and all
+            gains will be multiplied by a global gain. */
         struct Attitude gains;
 
         /* Indicates if the correction direction for the control output needs to

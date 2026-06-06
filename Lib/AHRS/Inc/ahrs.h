@@ -16,7 +16,6 @@ extern "C" {
 #endif
 
 void madgwick_imu(
-    float beta,
     float ax, float ay, float az,
     float gx, float gy, float gz,
     float t_delta,
