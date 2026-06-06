@@ -3,6 +3,12 @@
 #include "math3d.h"
 #include <stdint.h>
 
+/* Clamp number between -1 and 1 */
+#define CLAMP(VAL) (VAL > 1 ? 1 : (VAL < -1 ? -1 : VAL))
+
+/* Return absolute value of number */
+#define ABS(VAL) (VAL < 0 ? -VAL : VAL)
+
 /* Stabilization mode can be 0, 1, 2, 3, 4 */
 uint8_t stabilization_mode = 0;
 
@@ -18,7 +24,7 @@ static void (*st_func)(struct Stabilization_Context *context) = gyro_off;
     @param context Stabilization context
 */
 void gyro_off(struct Stabilization_Context *context) {
-    context->control_output.pitch = context->input.control_input.pitch;
+    context->control_output = context->input.control_input;
 }
 
 /*!
@@ -26,7 +32,43 @@ void gyro_off(struct Stabilization_Context *context) {
     @param context Stabilization context
 */
 void gyro_stabilize(struct Stabilization_Context *context) {
-    
+    /* Rotate the gyro vector to account for the device orientation in the
+        airframe */
+    struct Vector3 w_rotated = matrix_rotate_vector(
+        context->input.w,
+        context->config.device_orientation.r_matrix
+    );
+
+    /* Calculate control adjustments */
+    float roll_adj = -(context->config.gains.roll * w_rotated.x);
+    float pitch_adj = -(context->config.gains.pitch * w_rotated.y);
+    float yaw_adj = -(context->config.gains.yaw * w_rotated.z);
+
+    /* Reverse correction if specified */
+    roll_adj = (context->config.reverse.roll ? -roll_adj : roll_adj);
+    pitch_adj = (context->config.reverse.pitch ? -pitch_adj : pitch_adj);
+    yaw_adj = (context->config.reverse.yaw ? -yaw_adj : yaw_adj);
+
+    /* Scale adjustments based on control input. This makes the gyro correction
+        weaker when the control input is greater. */
+    roll_adj *= (1.0f - ABS(context->input.control_input.roll));
+    pitch_adj *= (1.0f - ABS(context->input.control_input.pitch));
+    yaw_adj *= (1.0f - ABS(context->input.control_input.yaw));
+
+    /* Scale all adjustments by the global gain */
+    roll_adj *= context->input.global_gain;
+    pitch_adj *= context->input.global_gain;
+    yaw_adj *= context->input.global_gain;
+
+    /* Combine control input and control adjustments */
+    float roll_out = context->input.control_input.roll + roll_adj;
+    float pitch_out = context->input.control_input.pitch + pitch_adj;
+    float yaw_out = context->input.control_input.yaw + yaw_adj;
+
+    /* Apply stabilized control to control output */
+    context->control_output.roll = CLAMP(roll_out);
+    context->control_output.pitch = CLAMP(pitch_out);
+    context->control_output.yaw = CLAMP(yaw_out);
 }
 
 /***********************************************************************

@@ -46,7 +46,7 @@ extern "C" {
     @details Each control value is and should be normalized to be between -100
     and 100. Extended range could be up to -150 to 150 range.
 */
-struct Attitude_Control {
+struct Attitude {
     float roll;
     float pitch;
     float yaw;
@@ -63,7 +63,7 @@ struct Stabilization_Context {
         /* Normalized control input/output limits. Each member represents an
             absolute value for the control limit. Default should be 1 but could
             go as high as 1.5 depending on TX settings */
-        struct Attitude_Control control_limits;
+        struct Attitude control_limits;
 
         /* Angle limits (in radians) for the Limit stabilization mode */
         struct {
@@ -71,14 +71,25 @@ struct Stabilization_Context {
             float pitch;
         } ang_limits;
 
-        /* Correction gains for stabilization. This should be a value > 0.
+        /* Correction gains for stabilization. Each gain should be a value > 0.
             Individual axis gains can be configured and all gains will be
             multiplied by a global gain. */
+        struct Attitude gains;
+
+        /* Indicates if the correction direction for the control output needs to
+            be reversed. 0 for no reversal, 1 for reversal */
         struct {
-            float roll;
-            float pitch;
-            float yaw;
-        } gains;
+            uint8_t roll;
+            uint8_t pitch;
+            uint8_t yaw;
+        } reverse;
+
+        /* Device orientation with respect to the airframe represented as a
+            Quaternion and a rotation matrix */
+        struct {
+            struct Quaternion q;
+            float r_matrix[3][3];
+        } device_orientation;
     } config;
 
     /* Stabilization input */
@@ -90,7 +101,7 @@ struct Stabilization_Context {
         struct Vector3 w;
 
         /* Normalized control input (-1 to 1) */
-        struct Attitude_Control control_input;
+        struct Attitude control_input;
 
         /* Global gain (0 to 1) */
         float global_gain;
@@ -100,7 +111,7 @@ struct Stabilization_Context {
     } input;
 
     /* Normalized stabilization output (-1 to 1) */
-    struct Attitude_Control control_output;
+    struct Attitude control_output;
 };
 
 /***********************************************************************

@@ -19,13 +19,19 @@ extern "C" {
 #define PITCH_ANG_LIMIT 45.0f
 
 /* Per-axis stabilization gains */
-#define ROLL_GAIN   2.0f
-#define PITCH_GAIN  2.0f
-#define YAW_GAIN    2.0f
+#define ROLL_GAIN   0.25f
+#define PITCH_GAIN  0.25f
+#define YAW_GAIN    1.0f
+
+/* Stabilization adjustment direction reversal */
+#define ROLL_ADJ_REVERSE    0
+#define PITCH_ADJ_REVERSE   0
+#define YAW_ADJ_REVERSE     1
 
 /* Channel settings */
 #define CHANNEL_CENTER      1500
 #define CHANNEL_MAX_THROW   500
+#define CHANNEL_DEADBAND    20
 #define GAIN_CHANNEL_MIN    1000
 #define GAIN_CHANNEL_WIDTH  1000
 
@@ -33,8 +39,8 @@ extern "C" {
 #define ROLL_CHANNEL    0
 #define PITCH_CHANNEL   1
 #define YAW_CHANNEL     3
-#define GAIN_CHANNEL    4
 #define MODE_CHANNEL    5
+#define GAIN_CHANNEL    6
 
 /* Control output channel mappings (0-indexed)
     Anything defined as NUM_OUTPUT_CHANNELS indicates it's unused by default */

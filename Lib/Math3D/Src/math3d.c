@@ -160,13 +160,13 @@ void euler_to_rot_matrix(float wx, float wy, float wz, float r0[3][3]) {
 
 /*!
     @brief Rotate a vector3 by q0. Operation: v1 = q0 * v0 * q0*
-    @param q0 Unit quaternion that will apply the rotation
     @param v0 Vector3 that will be rotated
+    @param q0 Unit quaternion that will apply the rotation
     @return Rotated vector3
     @details The optimized math used here was taken from this blog:
     https://blog.molecular-matters.com/2013/05/24/a-faster-quaternion-vector-multiplication/
 */
-struct Vector3 quat_rotate_vector(struct Quaternion q0, struct Vector3 v0) {
+struct Vector3 quat_rotate_vector(struct Vector3 v0, struct Quaternion q0) {
     /* Extract vector component of q0 */
     struct Vector3 q_vec = {
         .x = q0.x,
@@ -194,8 +194,8 @@ struct Vector3 quat_rotate_vector(struct Quaternion q0, struct Vector3 v0) {
 
 /*!
     @brief Apply a rotation matrix to a vector
-    @param r0 3x3 rotation matrix
     @param v0 Vector to be rotated
+    @param r0 3x3 rotation matrix
     @return Rotated vector3
     @details Rotating a vector by a rotation matrix uses only 9 multiplications
     and 6 additions compared to the 18 multiplications and 6 additions needed
@@ -205,7 +205,7 @@ struct Vector3 quat_rotate_vector(struct Quaternion q0, struct Vector3 v0) {
     precomputed otherwise converting from a quaternion or euler angles to a
     rotation matrix is quite expensive.
 */
-struct Vector3 matrix_rotate_vector(float r0[3][3], struct Vector3 v0) {
+struct Vector3 matrix_rotate_vector(struct Vector3 v0, float r0[3][3]) {
     struct Vector3 result = {
         .x = r0[0][0] * v0.x + r0[0][1] * v0.y + r0[0][2] * v0.z,
         .y = r0[1][0] * v0.x + r0[1][1] * v0.y + r0[1][2] * v0.z,

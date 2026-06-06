@@ -15,11 +15,29 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/signal.h>
 
 #define MADGWICK_LEARNING_RATE 0.1
 
 /* FOR DEBUG */
 uint32_t t0 = 0;
+
+/* Rotation of gyro with respect to aircraft */
+float x_ang_init = 0;
+float y_ang_init = 0;
+float z_ang_init = 0;
+
+/* Channel data in microseconds from receiver serial */
+uint16_t rx_channel_data[MAX_RX_CHANNELS];
+uint8_t roll_channel = ROLL_CHANNEL;
+uint8_t pitch_channel = PITCH_CHANNEL;
+uint8_t yaw_channel = YAW_CHANNEL;
+uint8_t gain_channel = GAIN_CHANNEL;
+uint8_t mode_select_channel = MODE_CHANNEL;
+uint16_t channel_center = CHANNEL_CENTER;
+uint16_t channel_max_throw = CHANNEL_MAX_THROW;
+uint16_t gain_channel_min = GAIN_CHANNEL_MIN;
+uint16_t gain_channel_width = GAIN_CHANNEL_WIDTH;
 
 /* Data read from the onboard IMU */
 struct IMU_Data imu_data;
@@ -35,32 +53,14 @@ struct Quaternion q_imu = {
 /* Vector representation of angular velocity */
 struct Vector3 w_imu = {0};
 
-/* Rotation of gyro with respect to aircraft */
-float x_ang_init = 90;
-float y_ang_init = 0;
-float z_ang_init = 0;
-float r_init[3][3];
-
-/* Channel data in microseconds from receiver serial */
-uint16_t rx_channel_data[MAX_RX_CHANNELS];
-uint8_t roll_channel = ROLL_CHANNEL;
-uint8_t pitch_channel = PITCH_CHANNEL;
-uint8_t yaw_channel = YAW_CHANNEL;
-uint8_t gain_channel = GAIN_CHANNEL;
-uint8_t mode_select_channel = MODE_CHANNEL;
-uint16_t channel_center = CHANNEL_CENTER;
-uint16_t channel_max_throw = CHANNEL_MAX_THROW;
-uint16_t gain_channel_min = GAIN_CHANNEL_MIN;
-uint16_t gain_channel_width = GAIN_CHANNEL_WIDTH;
-
 /* Stabilization context */
 struct Stabilization_Context st_ctx;
 
-/* Last control update */
-uint32_t last_update = 0;
-
 /* PWM outputs */
 uint16_t pwm_outputs[NUM_OUTPUT_CHANNELS];
+
+/* Last control update */
+uint32_t last_update = 0;
 
 /***********************************************************************
 -- PRIVATE FUNCTIONS --
@@ -153,6 +153,7 @@ static void map_rx_to_control_inputs(void) {
     yaw /= (float) channel_max_throw;
     gain /= (float) gain_channel_width;
 
+    /* Assign control inputs to the stabilization context */
     st_ctx.input.control_input.roll = roll;
     st_ctx.input.control_input.pitch = pitch;
     st_ctx.input.control_input.yaw = yaw;
@@ -185,53 +186,49 @@ static void map_control_outputs_to_pwm(void) {
 }
 
 /*!
-    @brief Print receiver outputs over USB for debug
+    @brief Print 4 uint16 values over USB
 */
-static void print_rx(void) {
+static void print_4_uint16(uint16_t arr[4]) {
     uint8_t tx_buf[64];
     uint8_t tx_buf_len = snprintf(
         (char*) tx_buf, 64,
         "Ch1: %hu\tCh2: %hu\tCh3: %hu\tCh4: %hu\r\n",
-        rx_channel_data[0],
-        rx_channel_data[1],
-        rx_channel_data[2],
-        rx_channel_data[3]
+        arr[0], arr[1], arr[2], arr[3]
     );
     CDC_Transmit_FS(tx_buf, tx_buf_len);
 }
 
 /*!
-    @brief Print gyro output over USB for debug
+    @brief Print 3 floats scaled by 1000 over USB
 */
-static void print_gyro(void) {
-    struct Vector3 w_rotated = matrix_rotate_vector(r_init, w_imu);
-    int16_t wx = w_rotated.x * 1000;
-    int16_t wy = w_rotated.y * 1000;
-    int16_t wz = w_rotated.z * 1000;
+static void print_3_floats(float f_list[3]) {
+    int16_t scaled_a = f_list[0] * 1000;
+    int16_t scaled_b = f_list[1] * 1000;
+    int16_t scaled_c = f_list[2] * 1000;
 
     uint8_t tx_buf[256];
     uint8_t tx_buf_len = snprintf(
         (char*) tx_buf, 256,
         "%hd,%hd,%hd\r\n",
-        wx, wy, wz
+        scaled_a, scaled_b, scaled_c
     );
     CDC_Transmit_FS(tx_buf, tx_buf_len);
 }
 
 /*!
-    @brief Print quaternion output over USB for debug
+    @brief Print 4 floats scaled by 1000 over USB
 */
-static void print_quat(void) {
-    int16_t qw = q_imu.w * 1000;
-    int16_t qx = q_imu.x * 1000;
-    int16_t qy = q_imu.y * 1000;
-    int16_t qz = q_imu.z * 1000;
+static void print_4_floats(float f_list[4]) {
+    int16_t scaled_a = f_list[0] * 1000;
+    int16_t scaled_b = f_list[1] * 1000;
+    int16_t scaled_c = f_list[2] * 1000;
+    int16_t scaled_d = f_list[3] * 1000;
 
     uint8_t tx_buf[256];
     uint8_t tx_buf_len = snprintf(
         (char*) tx_buf, 256,
         "%hd,%hd,%hd,%hd\r\n",
-        qw, qx, qy, qz
+        scaled_a, scaled_b, scaled_c, scaled_d
     );
     CDC_Transmit_FS(tx_buf, tx_buf_len);
 }
@@ -273,7 +270,7 @@ void app_setup(void) {
         x_ang_init,
         y_ang_init,
         z_ang_init,
-        r_init
+        st_ctx.config.device_orientation.r_matrix
     );
 
     /* Configure stabilization context */
@@ -285,12 +282,15 @@ void app_setup(void) {
     st_ctx.config.gains.roll = ROLL_GAIN;
     st_ctx.config.gains.pitch = PITCH_GAIN;
     st_ctx.config.gains.yaw = YAW_GAIN;
+    st_ctx.config.reverse.roll = ROLL_ADJ_REVERSE;
+    st_ctx.config.reverse.pitch = PITCH_ADJ_REVERSE;
+    st_ctx.config.reverse.yaw = YAW_ADJ_REVERSE;
 
-    /* For now default the mode to stabilize. This will be changed later */
+    /* Default the non-control inputs for now. This will be changed later. */
     st_ctx.input.mode = GYRO_MODE_STABILIZE;
     set_stabilization_mode(&st_ctx);
 
-    /* Update the last update time */
+    /* Set the last update time */
     last_update = get_ms();
 }
 
@@ -313,8 +313,10 @@ void app_loop(void) {
         map_rx_to_control_inputs();
     }
 
-    /* Update stabilization context at a rate of 50 Hz */
-    if (get_ms() - last_update < 20) {
+    /* Update stabilization and outputs at a rate of 50 Hz */
+    uint32_t current_ms = get_ms();
+    if (current_ms - last_update >= 20) {
+        last_update = current_ms;
         apply_stabilization(&st_ctx);
         map_control_outputs_to_pwm();
         update_pwm_pw(pwm_outputs);

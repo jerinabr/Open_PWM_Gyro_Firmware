@@ -57,8 +57,8 @@ This is for two main reasons:
 
 - [x] Add sensor fusion library/algorithm
 - [ ] Implement gyro modes
-  - [ ] Off
-  - [ ] Stabilize
+  - [x] Off
+  - [x] Stabilize
   - [ ] Hold
   - [ ] Level
   - [ ] Limit

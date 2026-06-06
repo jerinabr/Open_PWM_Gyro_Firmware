@@ -45,8 +45,8 @@ struct Vector3 vector_cross(struct Vector3 v0, struct Vector3 v1);
 void euler_to_rot_matrix(float wx, float wy, float wz, float r0[3][3]);
 
 /* Rotation operations */
-struct Vector3 quat_rotate_vector(struct Quaternion q0, struct Vector3 v0);
-struct Vector3 matrix_rotate_vector(float r0[3][3], struct Vector3 v0);
+struct Vector3 quat_rotate_vector(struct Vector3 v0, struct Quaternion q0);
+struct Vector3 matrix_rotate_vector(struct Vector3 v0, float r0[3][3]);
 
 #ifdef __cplusplus
 }
